@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "organaizer"
+version = "0.1.0"
+description = ""
+authors = ["Gabriel Gutierrez <gutierrez.ge@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+boto3 = "^1.35.53"
+pydantic = "^2.9.2"
+openai = "^1.53.0"
+aws-lambda-powertools = "^3.2.0"
+python-dotenv = "^1.0.1"
+flask = "^3.1.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.3"
+pytest-mock = "^3.14.0"
+moto = "^5.0.18"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

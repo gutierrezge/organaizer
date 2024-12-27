@@ -1,0 +1,92 @@
+version: '3.8'
+services:
+  # Database
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=organaizer
+      - POSTGRES_PASSWORD=organaizer
+      - POSTGRES_DB=organaizer
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: none
+    ports:
+      - "5432:5432"
+  # Streaming/CACHE service
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    logging:
+      driver: none
+    volumes:
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro
+  # Document Storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    logging:
+      driver: none
+    volumes:
+      - ./.data/minio:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+  # Backend API
+  api:
+    build:
+      context: ./components/organaizer
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./components/organaizer:/app
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - ORGANAIZER_ADMIN_DEBUG_MODE=True
+      - ORGANAIZER_ADMIN_HTTP_HOST=0.0.0.0
+      - ORGANAIZER_ADMIN_HTTP_PORT=5000
+      
+    depends_on:
+      - postgres
+      - redis
+      - minio
+  # UI Web Appliction
+  ui:
+    build:
+      context: ./components/organaizer-ui
+      dockerfile: Dockerfile
+    volumes:
+      - ./components/organaizer-ui:/app
+      - /app/node_modules
+    command: npm run start -- --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api
+  # Database Browser
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    user: root
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@organaizer.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    logging:
+      driver: none
+    volumes:
+      - ./.data/pgadmin/:/var/lib/pgadmin/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8080:80"

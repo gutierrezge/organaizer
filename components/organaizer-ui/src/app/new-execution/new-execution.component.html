@@ -1,0 +1,46 @@
+<app-navbar></app-navbar>
+<div class="spinner-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+</div>
+<div class="home">
+    <div class="container">
+
+        <form class="example-form">
+            <table class="example-full-width" cellspacing="0">
+                <tr *ngIf="error" class="alert-error">
+                    <td [colSpan]="3">
+                        Error: Make sure to provide all container values and an image.
+                    </td>
+                </tr>
+                <tr>
+                    <td><mat-form-field>
+                            <mat-label>Container Width</mat-label>
+                            <input matInput name="width" placeholder="100.00" [(ngModel)]="containerWidth"
+                                (keydown)="isNumber($event)">
+                        </mat-form-field></td>
+                    <td><mat-form-field>
+                            <mat-label>Container Height</mat-label>
+                            <input matInput name="height" placeholder="50.00" [(ngModel)]="containerHeight"
+                                (keydown)="isNumber($event)">
+                        </mat-form-field></td>
+                    <td><mat-form-field>
+                            <mat-label>Container Depth</mat-label>
+                            <input matInput name="depth" placeholder="25.00" [(ngModel)]="containerDepth"
+                                (keydown)="isNumber($event)">
+                        </mat-form-field></td>
+                </tr>
+                <tr>
+                    <td [colSpan]="3">
+                        <input class="input-file-upload" type="file" (change)="onFileSelected($event)"
+                            accept=".png,.jpg,.jpeg,.bmp">
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td><a mat-button href="/">Cancel</a></td>
+                    <td></td>
+                    <td><button mat-button (click)="newExecution()">Save</button></td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>

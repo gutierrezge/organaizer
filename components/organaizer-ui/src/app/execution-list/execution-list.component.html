@@ -1,0 +1,84 @@
+<app-navbar></app-navbar>
+<div class="spinner-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+</div>
+<div class="home">
+  <div class="container">
+    <div class="container-button">
+      <h2>Executions</h2>
+      <div class="button-group">
+        <button mat-button (click)="loadExecutions()"><mat-icon>refresh</mat-icon>Refresh</button>
+        <a mat-button href="new"><mat-icon>add</mat-icon>New</a>
+      </div>
+    </div>
+
+    <div class="container-table">
+      <mat-form-field>
+        <mat-label>Filter</mat-label>
+        <input matInput (keyup)="applyFilter($event)" placeholder="Ex. ium" #input />
+      </mat-form-field>
+
+      <table mat-table
+        [dataSource]="executions"
+        class="grid-table"
+        matSort
+        matSortActive="created"
+        matSortDisableClear
+        matSortDirection="desc"
+        class="mat-elevation-z8"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.id }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="container">
+            <th mat-header-cell *matHeaderCellDef> Container (W,H,D) </th>
+            <td mat-cell *matCellDef="let element" >
+              {{ element.container_width }} x {{ element.container_height }} x {{ element.container_depth }}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="boxes">
+            <th mat-header-cell *matHeaderCellDef> Boxes </th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.total_boxes }}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="volume">
+            <th mat-header-cell *matHeaderCellDef> Volume </th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.total_volume }}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let element" [ngClass]="{'status-processing': element.status == 'PROCESSING', 'status-done': element.status == 'DONE', 'status-error': element.status == 'ERROR'}">
+              {{ element.status }}
+            </td>
+        </ng-container>
+
+        <ng-container matColumnDef="created">
+          <th mat-header-cell *matHeaderCellDef> Created </th>
+          <td mat-cell *matCellDef="let element"> {{ element.created_on }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Actions </th>
+          <td mat-cell *matCellDef="let element" >
+            <button mat-icon-button (click)="deleteExecution(element)" matTooltip="Delete this execution">
+              <mat-icon fontIcon="delete"></mat-icon>
+            </button>
+            <button [disabled]="element.status !== 'DONE'" mat-icon-button (click)="viewExecution(element)"  matTooltip="View this execution">
+              <mat-icon fontIcon="view_in_ar"></mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+      </table>
+    </div>
+  </div>
+</div>

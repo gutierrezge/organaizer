@@ -38,8 +38,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":9001"
   # Backend API
   api:
@@ -52,11 +52,6 @@ services:
       - ./components/organaizer:/app
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    environment:
-      - ORGANAIZER_ADMIN_DEBUG_MODE=True
-      - ORGANAIZER_ADMIN_HTTP_HOST=0.0.0.0
-      - ORGANAIZER_ADMIN_HTTP_PORT=5000
-      
     depends_on:
       - postgres
       - redis

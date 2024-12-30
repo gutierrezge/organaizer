@@ -1,14 +1,21 @@
 # OrganAIzer
-This project uses docker-compose and python 3.12.
-This project runs in Ubuntu 22 and Windows 11
+Proyecto final de la maestria en Inteligenia Artificial en UNIR Mexico.
+Este proyecto busca identificar las cajas y sus volumenes basado en una imagen y generar un plan de organizacion en un contenedor.
 
-# Run the project
-You can run the project by running the ```./run.sh```
-If you make changes you can just execute the run file and impacted containers will be refreshed.
+# Integrantes
+Gabriel Ernesto Gutiérrez Añez
+Alicia Hernández Gutiérrez
+Guillermo Daniel González
+Lucia Alejandra Moreno Canuto
+
+# Ejecutar el proyecto.
+Para levantar la aplicacion, se debe ejecutar el archivo `./run.sh`
+Cualquier cambio generado en los archivos se vera reflejado automaticamente.
 
 # Stop the project
-To stop the application execute ```./stop.sh```
+Si NO se ejecuto en modo `deamon` se puede detener la apliacion utilizando `ctrl+c`
+Si se ejecuto en modo `deamon` se puede deterner ejecutando `./stop.sh`
 
-# Services
-User Interface: http://localhost:4200/
-Backend API: http://localhost:5000/health-check
+# Servicios y URLs
+- Interfaz de usuario: http://localhost:4200/
+- API: http://localhost:5000/health-check

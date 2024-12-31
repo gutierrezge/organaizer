@@ -11,9 +11,10 @@ def rest_api(func: Callable) -> Callable:
     Decorator that ensures the route always returns a ResponseEntity
     and handles jsonification of Pydantic models.
     """
+
     @wraps(func)
-    def wrapper(*args, **kwargs) -> tuple[str, int, dict[str,str]]:
-        response:Optional[BaseModel] = func(*args, **kwargs)
+    def wrapper(*args, **kwargs) -> tuple[str, int, dict[str, str]]:
+        response: Optional[BaseModel] = func(*args, **kwargs)
         return response.model_dump(exclude_none=True) if response is not None else {}
 
     return wrapper

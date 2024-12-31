@@ -8,4 +8,4 @@ HTTP_STATUS_NOT_FOUND = 404
 
 
 class HealthStatus(BaseModel):
-    current_datetime:str = Field(default=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    current_datetime: str = Field(default=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))

@@ -7,6 +7,16 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 ExecutionStatus = Literal['PROCESSING', 'DONE', 'ERROR'] 
 
 
+class Clp(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+    execution_id:UUID
+    box_id:int
+    x:int
+    y:int
+    z:int
+    created_on:datetime = Field(default=datetime.now())
+    modified_on:datetime = Field(default=datetime.now())
+
 
 class Box(BaseModel):
     model_config = ConfigDict(extra='ignore')
@@ -45,7 +55,8 @@ class Execution(BaseModel):
     status_message:Optional[str] = None
     created_on:datetime = Field(default=datetime.now())
     modified_on:datetime = Field(default=datetime.now())
-    boxes:list[Box] = Field(default=[])
+    boxes:List[Box] = Field(default=[])
+    plan:List[Clp] = Field(default=[])
 
     @computed_field
     @property
@@ -78,10 +89,10 @@ class PresignedUrlResponse(BaseModel):
 
 
 class DetectedBoxResult(BaseModel):
-    x1: float
-    y1: float
-    x2: float
-    y2: float
+    x1: int
+    y1: int
+    x2: int
+    y2: int
     confidence: float
     class_id: int
     class_name:str

@@ -4,11 +4,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 from contextlib import contextmanager
 import threading
-from src.model import Execution, Box
-from src.model.entities import ExecutionEntity, BoxEntity, ExecutionStatus, create_entities
+from src.model import Execution, Box, Clp
+from src.model.entities import create_entities, ExecutionEntity, BoxEntity, ExecutionStatus, ClpEntity
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -57,9 +57,11 @@ class Database:
 
 class ExecutionDAO:
 
+
     def __init__(self):
         self.db = Database()
-    
+
+
     def save(self, execution: Execution) -> Execution:
         with self.db.session() as session:
             db_execution = ExecutionEntity(
@@ -79,40 +81,62 @@ class ExecutionDAO:
             session.flush()
         return execution
 
+
     def find_by_id(self, execution_id: UUID) -> Optional[Execution]:
         with self.db.session() as session:
             e = session.query(ExecutionEntity).filter(ExecutionEntity.id == execution_id).first()
             if e is not None:
-                return Execution(
-                    id=e.id,
-                    key=e.key,
-                    container_width=e.container_width,
-                    container_height=e.container_height,
-                    container_depth=e.container_depth,
-                    status=e.status.value,
-                    status_message=e.status_message,
-                    created_on=e.created_on,
-                    modified_on=e.modified_on
-                )
+                return self._to_execution_(e, session)
         return None
-        
+    
+
+    def _to_execution_(self, e:ExecutionEntity, session):
+        return Execution(
+            id=e.id,
+            key=e.key,
+            container_width=e.container_width,
+            container_height=e.container_height,
+            container_depth=e.container_depth,
+            status=e.status.value,
+            status_message=e.status_message,
+            boxes=[
+                Box(
+                    execution_id=b.execution_id,
+                    x1=b.x1,
+                    y1=b.y1,
+                    x2=b.x2,
+                    y2=b.y2,
+                    width=b.width,
+                    height=b.height,
+                    depth=b.depth,
+                    created_on=b.created_on,
+                    modified_on=b.modified_on
+                ) for b in session.query(BoxEntity).filter(BoxEntity.execution_id == e.id).all()
+            ],
+            plan=[
+                Clp(
+                    execution_id=p.execution_id,
+                    box_id=p.box_id,
+                    x=p.x,
+                    y=p.y,
+                    z=p.y,
+                    created_on=p.created_on,
+                    modified_on=p.modified_on
+                ) for p in session.query(ClpEntity).filter(ClpEntity.execution_id == e.id).all()
+            ],
+            created_on=e.created_on,
+            modified_on=e.modified_on
+        )
+
+
     def find_all(self) -> List[Execution]:
         with self.db.session() as session:
             return [
-                Execution(
-                    id=e.id,
-                    key=e.key,
-                    container_width=e.container_width,
-                    container_height=e.container_height,
-                    container_depth=e.container_depth,
-                    status=e.status.value,
-                    status_message=e.status_message,
-                    created_on=e.created_on,
-                    modified_on=e.modified_on
-                ) for e in session.query(ExecutionEntity).all()
+                self._to_execution_(e, session) for e in session.query(ExecutionEntity).all()
             ]
 
-    def update(self, execution_id: UUID, status:ExecutionStatus, status_message:Optional[str]) -> Optional[Execution]:
+
+    def update(self, execution_id: UUID, status:ExecutionStatus, status_message:Optional[str]=None) -> Optional[Execution]:
         with self.db.session() as session:
             db_execution = session.query(ExecutionEntity).filter(
                 ExecutionEntity.id == execution_id
@@ -125,61 +149,54 @@ class ExecutionDAO:
             db_execution.status_message = status_message
         
         return self.find_by_id(execution_id)
+    
+
+    def save_boxes(self, boxes: List[Box]) -> List[Box]:
+        with self.db.session() as session:
+            for box in boxes:
+                session.add(BoxEntity(**box.model_dump(exclude={'volume', 'bbox'})))
+            session.flush()
+        return boxes
+    
+
+    def save_plan(self, plan: List[Clp]) -> List[Clp]:
+        with self.db.session() as session:
+            for p in plan:
+                session.add(ClpEntity(**p.model_dump()))
+            session.flush()
+        return plan
+
+
+    def delete_boxes(self, execution_id:UUID):
+        with self.db.session() as session:
+            boxes = session.query(BoxEntity).filter(BoxEntity.execution_id == execution_id).with_for_update().all()
+            if boxes and len(boxes) > 0:            
+                for b in boxes:
+                    session.delete(b)
+
+
+    def delete_plan(self, execution_id:UUID):
+        with self.db.session() as session:
+            plan:List[Clp] = session.query(ClpEntity).filter(ClpEntity.execution_id == execution_id).with_for_update().all()
+            if plan and len(plan) > 0:
+                for p in plan:
+                    session.delete(p)
+
 
     def delete(self, execution_id: UUID) -> bool:
         with self.db.session() as session:
-            db_execution = session.query(ExecutionEntity).filter(
-                ExecutionEntity.id == execution_id
-            ).with_for_update().first()  # Lock the row for deletion
-            
-            if not db_execution:
-                return False
-                
-            session.delete(db_execution)
-        return True
+            plan:List[Clp] = session.query(ClpEntity).filter(ClpEntity.execution_id == execution_id).with_for_update().all()
+            if plan and len(plan) > 0:
+                for p in plan:
+                    session.delete(p)
 
+            boxes = session.query(BoxEntity).filter(BoxEntity.execution_id == execution_id).with_for_update().all()
+            if boxes and len(boxes) > 0:            
+                for b in boxes:
+                    session.delete(b)
 
-class BoxDAO:
-
-
-    def __init__(self):
-        self.db = Database()
-    
-
-    def save(self, box: Box) -> Box:
-        with self.db.session() as session:
-            session.add(BoxEntity(**box.model_dump(exclude={'volume', 'bbox'})))
-            session.flush()
-        return box
-
-
-    def find_by_execution_id(self, execution_id: UUID) -> List[Box]:
-        with self.db.session() as session:
-            return [
-                Box(
-                    execution_id=b.execution_id,
-                    x1=b.x1,
-                    y1=b.y1,
-                    x2=b.x2,
-                    y2=b.y2,
-                    width=b.width,
-                    height=b.height,
-                    depth=b.depth,
-                    created_on=b.created_on,
-                    modified_on=b.modified_on
-                ) for b in session.query(BoxEntity).filter(BoxEntity.execution_id == execution_id).all()
-            ]
-
-
-    def delete_by_execution_id(self, execution_id: UUID) -> bool:
-        with self.db.session() as session:
-            boxes = session.query(BoxEntity).filter(
-                BoxEntity.execution_id == execution_id
-            ).with_for_update().all()
-            
-            if not boxes or len(boxes) == 0:
-                return False
-            
-            for b in boxes:
-                session.delete(b)
-        return True
+            db_execution = session.query(ExecutionEntity).filter(ExecutionEntity.id == execution_id).with_for_update().first() 
+            if db_execution:
+                session.delete(db_execution)
+                return True
+        return False

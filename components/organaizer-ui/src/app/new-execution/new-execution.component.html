@@ -4,58 +4,66 @@
 </div>
 <div class="home">
     <div class="container">
-
+        <p class="instructions" [ngClass]="{'alert-error': error}">
+            Upload an image with boxes and enter the container's dimension.
+        </p>
         <form class="example-form">
             <table class="example-full-width" cellspacing="0">
-                <tr *ngIf="error" class="alert-error">
-                    <td [colSpan]="3">
-                        Error: Make sure to provide all container values and an image.
-                    </td>
-                </tr>
                 <tr>
                     <td><mat-form-field>
-                            <mat-label>Container Width</mat-label>
+                            <mat-label>Container Width (cm)</mat-label>
                             <input matInput name="width" placeholder="100.00" [(ngModel)]="containerWidth"
                                 (keydown)="isNumber($event)">
                         </mat-form-field></td>
                     <td><mat-form-field>
-                            <mat-label>Container Height</mat-label>
+                            <mat-label>Container Height (cm)</mat-label>
                             <input matInput name="height" placeholder="50.00" [(ngModel)]="containerHeight"
                                 (keydown)="isNumber($event)">
                         </mat-form-field></td>
                     <td><mat-form-field>
-                            <mat-label>Container Depth</mat-label>
+                            <mat-label>Container Depth (cm)</mat-label>
                             <input matInput name="depth" placeholder="25.00" [(ngModel)]="containerDepth"
                                 (keydown)="isNumber($event)">
                         </mat-form-field></td>
                 </tr>
                 <tr>
                     <td [colSpan]="3">
-                        <input
+                        <div *ngIf="!selectedFile"
+                          class="upload-container"
+                          (dragover)="onDragOver($event)"
+                          (dragleave)="onDragLeave($event)"
+                          (drop)="onDrop($event)"
+                          (paste)="onPaste($event)"
+                          (click)="fileUpload.click()"
+                          [class.dragover]="isDragging"
+                        >
+                          <input
                             #fileUpload
-                            class="input-file-upload"
+                            class="hidden-input"
                             type="file"
                             accept=".png,.jpg,.jpeg,.bmp"
                             (change)="onFileSelected($event)"
-                            (dragover)="onDragOver($event)"
-                            (drop)="onDrop($event)"
-                            (paste)="onPaste($event)"
-                            >
-
+                          />
+                          <div class="upload-content" >
+                            <i class="upload-icon">
+                                <mat-icon fontIcon="image"></mat-icon>
+                            </i>
+                            <p class="upload-text">Click to upload, Drag & Drop or Paste your image from clipboard</p>
+                          </div>
+                        </div>
+                      
                         @if (selectedFile) {
-                            <div class="image-previews">
-                                <div class="preview-item">
-                                    <ng-container>
-                                        <img [src]="base64Image" [alt]="selectedFile.name" />
-                                    </ng-container>
-                                    <span class="file-name">{{selectedFile.name}}</span>
-                                    <button mat-mini-fab class="remove-image" (click)="removeFile()">
-                                        <mat-icon>close</mat-icon>
-                                    </button>
-                                </div>
+                          <div class="image-previews">
+                            <div class="preview-item">
+                              <img [src]="base64Image" [alt]="selectedFile.name" />
+                              <span class="file-name">{{selectedFile.name}}</span>
+                              <button mat-mini-fab class="remove-image" (click)="removeFile()">
+                                <mat-icon>close</mat-icon>
+                              </button>
                             </div>
-                            }
-                    </td>
+                          </div>
+                        }
+                      </td>
                 </tr>
                 <tr style="text-align: center;">
                     <td><a mat-button href="/">Cancel</a></td>

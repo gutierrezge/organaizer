@@ -6,11 +6,10 @@ from uuid import UUID
 from typing import Optional
 from src import log
 from src.decorator import rest_api
+from src.dao import ExecutionDAO
 from src.model.response import HealthStatus
 from src.model import Execution, Executions
 from src.service import (
-    ExecutionService,
-    BoxService,
     MinioService,
     PresignedUrlRequest,
     PresignedUrlResponse
@@ -21,8 +20,7 @@ from src.service.detection import DetectionProcess
 load_dotenv(find_dotenv())
 logger = log.configure()
 app = Flask(__name__)
-execution_service = ExecutionService()
-box_service = BoxService()
+dao = ExecutionDAO()
 minio_service = MinioService()
 
 
@@ -37,7 +35,7 @@ def health_check() -> HealthStatus:
 @cross_origin()
 @rest_api
 def executions() -> Executions:
-    return execution_service.find_all()
+    return Executions(executions=dao.find_all())
 
 
 @app.route('/presigned-put-url', methods=['POST'])
@@ -51,7 +49,7 @@ def get_presigned_put_urls() -> PresignedUrlResponse:
 @cross_origin()
 @rest_api
 def get_execution(id:str) -> Optional[Execution]:
-    execution:Execution = execution_service.find_by_id(UUID(id))
+    execution:Execution = dao.find_by_id(UUID(id))
     if execution is not None and execution.status == 'DONE':
         execution.source_image_url = minio_service.generate_presigned_get_url(PresignedUrlRequest(key=execution.key)).url
         execution.predicted_image_url = minio_service.generate_presigned_get_url(PresignedUrlRequest(key=f"{execution.id}/result.jpg")).url
@@ -62,8 +60,8 @@ def get_execution(id:str) -> Optional[Execution]:
 @cross_origin()
 @rest_api
 def create_execution() -> Execution:
-    execution:Execution = execution_service.save(Execution(**request.get_json()))
-    DetectionProcess(execution, execution_service, box_service, minio_service).start()
+    execution:Execution = dao.save(Execution(**request.get_json()))
+    DetectionProcess(execution, dao, minio_service).start()
     
     return execution
 
@@ -72,10 +70,9 @@ def create_execution() -> Execution:
 @cross_origin()
 @rest_api
 def delete_execution(id:str) -> Optional[Execution]:
-    execution:Execution = execution_service.find_by_id(UUID(id))
+    execution:Execution = dao.find_by_id(UUID(id))
     if execution is not None:
-        box_service.delete_by_execution_id(UUID(id))
-        execution_service.delete(UUID(id))
+        dao.delete(UUID(id))
     return execution
 
 

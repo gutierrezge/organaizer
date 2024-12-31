@@ -22,6 +22,8 @@ import { CreateExecutionRequest, PresignedUrlResponse } from '../models/models';
   styleUrl: './new-execution.component.css'
 })
 export class NewExecutionComponent implements AfterViewInit {
+
+  isDragging = false;
   isLoading: boolean = false;
   containerWidth?:number;
   containerHeight?:number;
@@ -105,9 +107,16 @@ export class NewExecutionComponent implements AfterViewInit {
     }
   }
 
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
   onDragOver(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
+    this.isDragging = true;
   }
 
   async onDrop(event: DragEvent) {
@@ -116,6 +125,7 @@ export class NewExecutionComponent implements AfterViewInit {
     
     if (event.dataTransfer?.files?.length) {
       this.selectedFile = event.dataTransfer?.files[0]
+      this.base64Image = await this.fileToBase64(event.dataTransfer?.files[0]);
     }
   }
 
@@ -128,6 +138,7 @@ export class NewExecutionComponent implements AfterViewInit {
           const file = item.getAsFile();
           if (file) {
             this.selectedFile = file;
+            this.base64Image = await this.fileToBase64(file);
             break;
           }
         }

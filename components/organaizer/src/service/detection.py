@@ -5,19 +5,22 @@ import numpy as np
 from threading import Thread
 from ultralytics import YOLO
 import cv2
-from PIL import Image
 from src import log
 from src.model import (
     Execution,
+    Box,
+    Clp,
     DetectedBoxResult,
     DetetionConfig
 )
-from src.service import MinioService, BoxService, Box, ExecutionService
+from src.dao import ExecutionDAO
+from src.service import MinioService
 
 logger = log.configure()
+MAX_WIDTH = 300
 
 
-class DetectionService:
+class YOLOService:
 
 
     def __init__(self, config:DetetionConfig=DetetionConfig()):
@@ -55,19 +58,13 @@ class DetectionService:
     @classmethod
     def draw_detections(cls,
                         image: np.ndarray,
-                        detections: List[DetectedBoxResult],
-                        font_family:int = cv2.FONT_HERSHEY_SIMPLEX,
-                        font_size:float = 0.5,
+                        detections: List[Union[DetectedBoxResult, Box]],
                         font_weight:float = 1,
-                        font_color:tuple[int,int,int] = (0, 0, 0),
                         box_border_color:tuple[int,int,int] = (0, 255, 0)
                         ) -> np.ndarray:
         img_draw:np.ndarray = image.copy()
         
         for det in detections:
-            label:str = f"{det.class_name} - {det.confidence*100:.2f}%"
-            
-            # Draw box
             cv2.rectangle(
                 img_draw,
                 (int(det.x1), int(det.y1)),
@@ -76,56 +73,33 @@ class DetectionService:
                 thickness=font_weight
             )
             
-            # Draw label background
-            text_size,_ = cv2.getTextSize(
-                label,
-                fontFace=font_family,
-                fontScale=font_size,
-                thickness=font_weight,
-            )
-            cv2.rectangle(
-                img_draw,
-                (int(det.x1), int(det.y1 - text_size[1] - 4)),
-                (int(det.x1 + text_size[0]), int(det.y1)),
-                color=box_border_color,
-                thickness=-1
-            )
-
-            # Draw label text
-            cv2.putText(
-                img_draw,
-                label,
-                (int(det.x1), int(det.y1 - 2)),
-                fontFace=font_family,
-                fontScale=font_size,
-                color=font_color,
-                thickness=font_weight
-            )
-            
         return img_draw
     
 class DetectionProcess(Thread):
 
+
     def __init__(self,
                  execution:Execution,
-                 execution_service:ExecutionService,
-                 box_service:BoxService,
+                 dao:ExecutionDAO,
                  minio_service:MinioService):
         Thread.__init__(self)
         self.execution:Execution = execution
-        self.execution_service:ExecutionService = execution_service
-        self.box_service:BoxService = box_service
-        self.minio_service = minio_service
+        self.dao:ExecutionDAO = dao
+        self.minio_service:MinioService = minio_service
+        self.yolo:YOLOService = YOLOService()
+
 
     def error(self, message:str):
         logger.error(message, exc_info=True)
-        self.execution_service.update(self.execution.id, 'ERROR', message)
+        self.dao.update(self.execution.id, 'ERROR', message)
+
 
     def done(self):
-        self.execution_service.update(self.execution.id, 'DONE')
+        self.dao.update(self.execution.id, 'DONE')
         logger.info(f"Predictions finished for image {self.execution.key}")
 
-    def resize(self, img:np.array, target_width:int = 300):
+
+    def resize(self, img:np.array, target_width:int = MAX_WIDTH):
         height, width = img.shape[:2]
         new_height:int = int(target_width / (width / height))
         return cv2.resize(img, (target_width, new_height), interpolation=cv2.INTER_AREA)
@@ -133,17 +107,16 @@ class DetectionProcess(Thread):
     def run(self):
         try:
             image_bytes:bytes = self.minio_service.get_object_content(self.execution.key)
-            image:np.array = np.frombuffer(image_bytes, np.uint8)
-            image = self.resize(cv2.imdecode(image, cv2.IMREAD_COLOR))
-            # Save the image again to ensure we have it in the right size
-            _, resized = cv2.imencode('.jpg', image)
-            self.minio_service.put_object(self.execution.key, io.BytesIO(resized), resized.size)
-        except Exception as e:
-            self.error(f"Failed to retrieve image {self.execution.key}")
-            raise e
-
-        try:
-            detections:List[DetectedBoxResult] = DetectionService().predict(image)
+            image:np.array = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+            if image.shape[1] != MAX_WIDTH:
+                # Adjust image size and update the storage
+                image = self.resize(image)
+                _, resized = cv2.imencode('.jpg', image)
+                self.minio_service.put_object(self.execution.key, io.BytesIO(resized), resized.size)
+            
+            ############################################################################################
+            # TODO: REMOVE MOCKED DATA AND CALL self.yolo.predict(image) TO CALL YOLO MODEL
+            ############################################################################################
             detections:List[DetectedBoxResult] = [
                 DetectedBoxResult(
                     x1=128,
@@ -173,41 +146,61 @@ class DetectionProcess(Thread):
                     class_name='box'
                 )
             ]
-        except Exception as e:
-            self.error(f"Failed to predict the image {self.execution.key}")
-            raise e
         
-        self.box_service.delete_by_execution_id(self.execution.id)
-        for det in detections:
-            try:
-                # TODO: compute volume
-                w,h,d = rnd.uniform(5, 30),rnd.uniform(5, 30),rnd.uniform(5, 30)
-            except Exception as e:
-                self.error(f"Failed to compute volumen on image {self.execution.key}")
-                raise e
-            
-            try:
-                self.box_service.save(Box(
+            #############################################################################
+            # TODO: REMOVE MOCKED DATA AND COMPUTE VOLUMETRIC DATA FOR EACH PREDICTED BOX
+            #############################################################################
+            boxes:List[Box] = [
+                Box(
                     execution_id=self.execution.id,
-                    x1=det.x1,
-                    y1=det.y1,
-                    x2=det.x2,
-                    y2=det.y2,
-                    width=w,
-                    height=d,
-                    depth=h
-                ))
-            except Exception as e:
-                self.error(f"Failed to save Box data for image {self.execution.key}")
-                raise e
-        try:
-            _, preditect_image = cv2.imencode('.jpg', DetectionService.draw_detections(image, detections))
-            self.minio_service.put_object(f"{self.execution.id}/result.jpg", io.BytesIO(preditect_image), preditect_image.size)
-        except Exception as e:
-            self.error(f"Failed to create predicted image. {self.execution.key}")
-            raise e
-        # TODO: Generate organization plan and save it to database
-        # THIS COULD BE DONE USING GEN-AI using OpenAI, Claude or Gemini??
+                    x1=box.x1,
+                    y1=box.y1,
+                    x2=box.x2,
+                    y2=box.y2,
+                    width=rnd.uniform(5, 30),
+                    height=rnd.uniform(5, 30),
+                    depth=rnd.uniform(5, 30)
+                ) for box in detections
+            ]
+            
+            ##################################################################
+            # TODO: REMOVE MOCKED DATA AND GENERATE THE CONTAINER LOADING PLAN
+            ##################################################################
+            plan = [
+                Clp(
+                    execution_id=self.execution.id,
+                    box_id=1,
+                    x=0,
+                    y=0,
+                    z=0
+                ),
+                Clp(
+                    execution_id=self.execution.id,
+                    box_id=2,
+                    x=1,
+                    y=0,
+                    z=0
+                ),
+                Clp(
+                    execution_id=self.execution.id,
+                    box_id=3,
+                    x=2,
+                    y=0,
+                    z=0
+                )
+            ]
 
-        self.done()
-        
+            self.dao.delete_boxes(self.execution.id)
+            self.dao.save_boxes(boxes)
+            
+            self.dao.delete_plan(self.execution.id)
+            self.dao.save_plan(plan)
+
+            # Draw predictions into image and save it
+            _, preditect_image = cv2.imencode('.jpg', YOLOService.draw_detections(image, detections))
+            self.minio_service.put_object(f"{self.execution.id}/result.jpg", io.BytesIO(preditect_image), preditect_image.size)
+
+            self.done()
+        except Exception as e:
+            self.error(f"Failed to process image. {self.execution.key}. {str(e)}")
+            raise e        

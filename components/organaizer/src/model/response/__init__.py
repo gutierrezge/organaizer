@@ -1,6 +1,5 @@
 from datetime import datetime
-from typing import Optional, Self
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 HTTP_STATUS_OK = 200

@@ -11,6 +11,15 @@ export interface Box {
     created_on:Date
     modified_on:Date
 }
+export interface Clp {
+    execution_id:string
+    box_id:number
+    x:number
+    y:number
+    z:number
+    created_on:Date
+    modified_on:Date
+}
 export interface CreateExecutionRequest {
     id:string
     key:string
@@ -30,7 +39,8 @@ export interface Execution {
     status_message?:number
     created_on:Date
     modified_on:Date
-    boxes:Box[]
+    boxes: Box[]
+    plan: Clp[]
     total_boxes:number
     total_volume:number
 }

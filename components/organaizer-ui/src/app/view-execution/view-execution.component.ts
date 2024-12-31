@@ -6,11 +6,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-view-execution',
   standalone: true,
-  imports: [MatCardModule, MatFormFieldModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, MatCardModule, MatFormFieldModule, MatIconModule, MatTooltipModule],
   templateUrl: './view-execution.component.html',
   styleUrl: './view-execution.component.css'
 })

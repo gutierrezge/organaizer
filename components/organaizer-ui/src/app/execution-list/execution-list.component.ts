@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { CommonModule } from '@angular/common';
 import { OrganaizerService } from '../service/service';
@@ -11,6 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { interval, Subscription } from 'rxjs';
+
 
 @Component({
   selector: 'app-execution-list',
@@ -23,23 +25,32 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   templateUrl: './execution-list.component.html',
   styleUrl: './execution-list.component.css'
 })
-export class ExecutionListComponent implements OnInit {
+export class ExecutionListComponent implements OnInit, OnDestroy {
 
+  private POLL_INTERVAL_SECONDS:number = 5;
+  private intervalSubscription?: Subscription
   isLoading: boolean = false;
   displayedColumns: string[] = ['id', 'container', 'boxes', 'volume', 'status', 'created', 'actions'];
-  executions = new MatTableDataSource<Execution>();
+  datasource = new MatTableDataSource<Execution>();
+  executions?: Execution[];
 
   constructor(private router: Router, private organaizerService: OrganaizerService) {}
   
   ngOnInit(): void {
-    this.loadExecutions()
+    this.loadExecutions();
+    this.intervalSubscription = interval(this.POLL_INTERVAL_SECONDS * 1000).subscribe(() => {
+      this.loadExecutions();
+    });
   }
 
   loadExecutions(): void {
     this.isLoading = true;
     this.organaizerService.findAll().subscribe({
       next: (executions:Executions) => {
-        this.executions = new MatTableDataSource<Execution>(executions.executions);
+        if (this.hasDataChanged(executions.executions)) {
+          this.datasource = new MatTableDataSource<Execution>(executions.executions);
+          this.executions = executions.executions
+        }
       },
       error: (error) => {
         this.isLoading = false
@@ -47,6 +58,10 @@ export class ExecutionListComponent implements OnInit {
       },
       complete: () => this.isLoading = false
     });
+  }
+
+  private hasDataChanged(new_executions:Execution[]): boolean {
+    return JSON.stringify(this.executions) != JSON.stringify(new_executions)
   }
 
   deleteExecution(execution:Execution):void {
@@ -66,7 +81,11 @@ export class ExecutionListComponent implements OnInit {
 
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
-    this.executions.filter = filterValue.trim().toLowerCase();
+    this.datasource.filter = filterValue.trim().toLowerCase();
+  }
+
+  ngOnDestroy() {
+    this.intervalSubscription?.unsubscribe();
   }
 
 }

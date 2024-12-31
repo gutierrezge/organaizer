@@ -1,11 +1,18 @@
 import os
-import json
+import io
 from datetime import timedelta
 from uuid import uuid4, UUID
 from typing import Optional
 from minio import Minio
 from src import log
-from src.model import PresignedUrlRequest, PresignedUrlResponse, Box, Execution, Executions
+from src.model import (
+    PresignedUrlRequest,
+    PresignedUrlResponse,
+    Box,
+    Execution,
+    Executions,
+    ExecutionStatus
+)
 from src.dao import ExecutionDAO, BoxDAO
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
@@ -56,27 +63,31 @@ class MinioService:
     def generate_presigned_get_url(self, request: PresignedUrlRequest) -> PresignedUrlResponse:
         url = self.client.presigned_get_object(
             bucket_name=self.bucket_name,
-            object_name=request.object_name,
+            object_name=request.key,
             expires=timedelta(seconds=request.expiration)
         )
-        logger.info(f"Generated URL: {url}")
 
         return PresignedUrlResponse(
+            id=request.key[:request.key.find('/')],
+            key=request.key,
             url=url,
             expiration=request.expiration
+        )
+    
+    def put_object(self, key:str, data:io.BytesIO, length:int):
+        self.client.put_object(
+            bucket_name=self.bucket_name,
+            object_name=key,
+            data=data,
+            length=length
         )
 
 
     def get_object_content(self, object_name: str) -> bytes:
-        data = self.client.get_object(
+        return self.client.get_object(
             bucket_name=self.bucket_name,
             object_name=object_name
-        )
-        
-        # Read all data into memory
-        content = data.read()
-        data.close()
-        return content
+        ).read()
 
 
     def delete_object(self, object_name: str) -> None:
@@ -118,11 +129,8 @@ class ExecutionService:
         return execcution
 
 
-    def update(self, id: UUID, execution: Execution) -> Optional[Execution]:
-        entity = self.execution_dao.update(id, execution.model_dump(exclude={'id', 'boxes'}))
-        if not entity:
-            return None
-        return Execution.model_validate(entity.__dict__)
+    def update(self, id: UUID, status:ExecutionStatus, status_message:Optional[str]=None) -> Optional[Execution]:
+        return self.execution_dao.update(id, status, status_message)
 
 
     def delete(self, id: UUID) -> bool:
@@ -144,5 +152,5 @@ class BoxService:
         return self.box_dao.find_by_execution_id(execution_id)
 
 
-    def delete_execution_id(self, execution_id: UUID) -> bool:
-        return self.box_dao.delete_execution_id(execution_id)
+    def delete_by_execution_id(self, execution_id: UUID) -> bool:
+        return self.box_dao.delete_by_execution_id(execution_id)

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NavbarComponent } from '../navbar/navbar.component';
@@ -27,8 +27,11 @@ export class NewExecutionComponent implements AfterViewInit {
   containerHeight?:number;
   containerDepth?:number;
   selectedFile?:File
+  base64Image?:string
   error:boolean = false;
   hasAllData = false;
+  @ViewChild('fileUpload') fileUpload!: ElementRef;
+
   
   constructor(private router: Router, private organaizerService: OrganaizerService) {}
 
@@ -37,6 +40,7 @@ export class NewExecutionComponent implements AfterViewInit {
     this.containerHeight = undefined;
     this.containerDepth = undefined;
     this.selectedFile = undefined;
+    this.base64Image = undefined;
   }
 
   newExecution(): void {
@@ -88,8 +92,73 @@ export class NewExecutionComponent implements AfterViewInit {
     }
   }
 
-  onFileSelected(event: any): void {
-    this.selectedFile = event.target.files[0];
+  removeFile():void {
+    this.selectedFile = undefined;
+    this.base64Image = undefined;
+    this.fileUpload.nativeElement.value = '';
+  }
+
+  async onFileSelected(event: any): Promise<void> {
+    if (event.target.files && event.target.files.length) {
+      this.selectedFile = event.target.files[0];
+      this.base64Image = await this.fileToBase64(event.target.files[0]);
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (event.dataTransfer?.files?.length) {
+      this.selectedFile = event.dataTransfer?.files[0]
+    }
+  }
+
+  async onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    
+    if (items) {
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            this.selectedFile = file;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  private async fileToBase64(file: File, maxSizeInMB = 5): Promise<string> {
+    // Check file size
+    const fileSizeInMB = file.size / (1024 * 1024);
+    if (fileSizeInMB > maxSizeInMB) {
+      throw new Error(`File size exceeds ${maxSizeInMB}MB limit`);
+    }
+  
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+  
+      reader.onerror = (error) => {
+        reject(error);
+      };
+  
+      reader.readAsDataURL(file);
+    });
   }
 
 

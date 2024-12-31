@@ -28,7 +28,7 @@
         class="mat-elevation-z8"
       >
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef> ID </th>
+          <th mat-header-cell *matHeaderCellDef> Execution ID </th>
           <td mat-cell *matCellDef="let element">
             {{ element.id }}
           </td>
@@ -67,12 +67,12 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef> Actions </th>
           <td mat-cell *matCellDef="let element" >
-            <button mat-icon-button (click)="deleteExecution(element)" matTooltip="Delete this execution">
+            <a mat-icon-button (click)="deleteExecution(element)" matTooltip="Delete this execution">
               <mat-icon fontIcon="delete"></mat-icon>
-            </button>
-            <button [disabled]="element.status !== 'DONE'" mat-icon-button (click)="viewExecution(element)"  matTooltip="View this execution">
+            </a>
+            <a mat-icon-button [disabled]="element.status !== 'DONE'" [routerLink]="['/view', element.id]" matTooltip="View this execution">
               <mat-icon fontIcon="view_in_ar"></mat-icon>
-            </button>
+            </a>
           </td>
         </ng-container>
 

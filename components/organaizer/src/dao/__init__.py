@@ -112,20 +112,19 @@ class ExecutionDAO:
                 ) for e in session.query(ExecutionEntity).all()
             ]
 
-    def update(self, execution_id: UUID, execution_data: dict) -> Optional[ExecutionEntity]:
+    def update(self, execution_id: UUID, status:ExecutionStatus, status_message:Optional[str]) -> Optional[Execution]:
         with self.db.session() as session:
             db_execution = session.query(ExecutionEntity).filter(
                 ExecutionEntity.id == execution_id
-            ).with_for_update().first()  # Lock the row for update
+            ).with_for_update().first()
             
             if not db_execution:
                 return None
-                
-            for key, value in execution_data.items():
-                if hasattr(db_execution, key):
-                    setattr(db_execution, key, value)
-                    
-            return db_execution
+            
+            db_execution.status = status
+            db_execution.status_message = status_message
+        
+        return self.find_by_id(execution_id)
 
     def delete(self, execution_id: UUID) -> bool:
         with self.db.session() as session:
@@ -149,7 +148,7 @@ class BoxDAO:
 
     def save(self, box: Box) -> Box:
         with self.db.session() as session:
-            session.add(BoxEntity(**box.model_dump()))
+            session.add(BoxEntity(**box.model_dump(exclude={'volume', 'bbox'})))
             session.flush()
         return box
 
@@ -172,7 +171,7 @@ class BoxDAO:
             ]
 
 
-    def delete_execution_id(self, execution_id: UUID) -> bool:
+    def delete_by_execution_id(self, execution_id: UUID) -> bool:
         with self.db.session() as session:
             boxes = session.query(BoxEntity).filter(
                 BoxEntity.execution_id == execution_id

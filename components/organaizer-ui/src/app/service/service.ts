@@ -35,6 +35,10 @@ export class OrganaizerService {
         return this.get("executions");
     }
 
+    findById(id:string): Observable<Execution> {
+        return this.get(`execution/${id}`);
+    }
+
     presignedUrls(filename:string): Observable<PresignedUrlResponse> {
         return this.post("presigned-put-url", {"key": filename});
     }

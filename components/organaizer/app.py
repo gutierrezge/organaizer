@@ -1,14 +1,21 @@
 import os
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request
-from flask_cors import CORS
+from flask_cors import cross_origin
 from uuid import UUID
 from typing import Optional
 from src import log
 from src.decorator import rest_api
 from src.model.response import HealthStatus
 from src.model import Execution, Executions
-from src.service import ExecutionService, BoxService, MinioService, PresignedUrlRequest, PresignedUrlResponse
+from src.service import (
+    ExecutionService,
+    BoxService,
+    MinioService,
+    PresignedUrlRequest,
+    PresignedUrlResponse
+)
+from src.service.detection import DetectionProcess
 
 
 load_dotenv(find_dotenv())
@@ -16,57 +23,58 @@ logger = log.configure()
 app = Flask(__name__)
 execution_service = ExecutionService()
 box_service = BoxService()
+minio_service = MinioService()
 
-
-CORS(app, resources={
-    r"/*": {
-        "origins": ["http://localhost:4200"],
-        "methods": ["GET", "POST", "PUT", "DELETE"],
-        "expose_headers": ["Content-Range", "X-Content-Range"],
-        "max_age": 3600
-    }
-})
 
 @app.route('/health-check', methods=['GET'])
+@cross_origin()
 @rest_api
 def health_check() -> HealthStatus:
     return HealthStatus()
 
 
 @app.route('/executions', methods=['GET'])
+@cross_origin()
 @rest_api
 def executions() -> Executions:
     return execution_service.find_all()
 
 
 @app.route('/presigned-put-url', methods=['POST'])
+@cross_origin()
 @rest_api
 def get_presigned_put_urls() -> PresignedUrlResponse:
-    return MinioService().generate_presigned_put_url(PresignedUrlRequest(**request.get_json()))
+    return minio_service.generate_presigned_put_url(PresignedUrlRequest(**request.get_json()))
 
 
 @app.route('/execution/<id>', methods=['GET'])
+@cross_origin()
 @rest_api
 def get_execution(id:str) -> Optional[Execution]:
-    return execution_service.find_by_id(UUID(id))
+    execution:Execution = execution_service.find_by_id(UUID(id))
+    if execution is not None and execution.status == 'DONE':
+        execution.source_image_url = minio_service.generate_presigned_get_url(PresignedUrlRequest(key=execution.key)).url
+        execution.predicted_image_url = minio_service.generate_presigned_get_url(PresignedUrlRequest(key=f"{execution.id}/result.jpg")).url
+    return execution
 
 
 @app.route('/execution', methods=['POST'])
+@cross_origin()
 @rest_api
 def create_execution() -> Execution:
-    logger.info(request.get_json())
     execution:Execution = execution_service.save(Execution(**request.get_json()))
-    #TODO: RUN AI HERE
+    DetectionProcess(execution, execution_service, box_service, minio_service).start()
     
     return execution
 
 
 @app.route('/execution/<id>', methods=['DELETE'])
+@cross_origin()
 @rest_api
 def delete_execution(id:str) -> Optional[Execution]:
     execution:Execution = execution_service.find_by_id(UUID(id))
     if execution is not None:
-        box_service.delete_execution_id(UUID(id))
+        box_service.delete_by_execution_id(UUID(id))
         execution_service.delete(UUID(id))
     return execution
 

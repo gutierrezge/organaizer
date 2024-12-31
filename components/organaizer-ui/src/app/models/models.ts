@@ -24,6 +24,8 @@ export interface Execution {
     container_width:number
     container_height:number
     container_depth:number
+    source_image_url?:string
+    predicted_image_url?:string
     status:string
     status_message?:number
     created_on:Date

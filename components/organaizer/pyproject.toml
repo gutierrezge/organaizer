@@ -18,6 +18,8 @@ sqlalchemy = "^2.0.36"
 flask-sqlalchemy = "^3.1.1"
 psycopg2-binary = "^2.9.10"
 flask-cors = "^5.0.0"
+ultralytics = "^8.3.55"
+opencv-python = "^4.10.0.84"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"

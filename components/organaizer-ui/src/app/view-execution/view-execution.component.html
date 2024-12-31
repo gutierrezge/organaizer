@@ -1,0 +1,56 @@
+<div class="details-container">
+    <mat-card class="specs-card">
+        <div class="specs-header">
+            <div></div> <!-- Empty div for grid alignment -->
+            <a mat-icon-button href="/" matTooltip="Close" class="close-button">
+                <mat-icon fontIcon="close"></mat-icon>
+            </a>
+        </div>
+        <div class="specs-grid">
+            <div class="spec-item">
+                <label class="spec-label">Execution ID</label>
+                <div class="spec-value">{{this.execution?.id}}</div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Container Width</label>
+                <div class="spec-value">{{this.execution?.container_width}} cm</div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Container Height</label>
+                <div class="spec-value">{{this.execution?.container_height}} cm</div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Container Depth</label>
+                <div class="spec-value">{{this.execution?.container_depth}} cm</div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Boxes</label>
+                <div class="spec-value">{{this.execution?.boxes?.length}}</div>
+            </div>
+        </div>
+    </mat-card>
+
+    <div class="images-container">
+        <mat-card class="image-card">
+            <mat-card-header>
+                <mat-card-title>Source</mat-card-title>
+            </mat-card-header>
+            <div class="image-container">
+                <img [src]="this.execution?.source_image_url">
+            </div>
+        </mat-card>
+
+        <mat-card class="image-card">
+            <mat-card-header>
+                <mat-card-title>Prediction</mat-card-title>
+            </mat-card-header>
+            <div class="image-container">
+                <img [src]="this.execution?.predicted_image_url">
+            </div>
+        </mat-card>
+    </div>
+</div>

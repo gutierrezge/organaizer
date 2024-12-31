@@ -36,6 +36,8 @@ class Execution(BaseModel):
     model_config = ConfigDict(extra='ignore')
     id:UUID
     key:str
+    source_image_url:Optional[str] = None
+    predicted_image_url:Optional[str] = None
     container_width:float
     container_height:float
     container_depth:float
@@ -73,3 +75,19 @@ class PresignedUrlResponse(BaseModel):
     key:str
     url: str
     expiration: int
+
+
+class DetectedBoxResult(BaseModel):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    confidence: float
+    class_id: int
+    class_name:str
+
+
+class DetetionConfig(BaseModel):
+    model:str = Field(default='yolov10n.pt')
+    confidence_threshold:float = Field(default=0.25)
+    iou_threshold: float = Field(default=0.45)

@@ -31,8 +31,30 @@
                 </tr>
                 <tr>
                     <td [colSpan]="3">
-                        <input class="input-file-upload" type="file" (change)="onFileSelected($event)"
-                            accept=".png,.jpg,.jpeg,.bmp">
+                        <input
+                            #fileUpload
+                            class="input-file-upload"
+                            type="file"
+                            accept=".png,.jpg,.jpeg,.bmp"
+                            (change)="onFileSelected($event)"
+                            (dragover)="onDragOver($event)"
+                            (drop)="onDrop($event)"
+                            (paste)="onPaste($event)"
+                            >
+
+                        @if (selectedFile) {
+                            <div class="image-previews">
+                                <div class="preview-item">
+                                    <ng-container>
+                                        <img [src]="base64Image" [alt]="selectedFile.name" />
+                                    </ng-container>
+                                    <span class="file-name">{{selectedFile.name}}</span>
+                                    <button mat-mini-fab class="remove-image" (click)="removeFile()">
+                                        <mat-icon>close</mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+                            }
                     </td>
                 </tr>
                 <tr style="text-align: center;">

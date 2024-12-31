@@ -49,25 +49,11 @@ export class ExecutionListComponent implements OnInit {
     });
   }
 
-
-  viewExecution(execution:Execution): void {
-    // const baseUrl = window.location.origin;
-    // let url = '';
-    // if (url_id == 1) {
-    //   url = 'chat-bubble';
-    // } else {
-    //   url = 'chat'
-    // }
-    // window.open(`${baseUrl}/${url}/${chat.id}`, '_blank');
-  }
-
   deleteExecution(execution:Execution):void {
     if (confirm("Are you sure you want to delete execution " + execution.id)) {
       this.isLoading = true;
       this.organaizerService.deleteExecution(execution).subscribe({
         next: (execution:Execution) => {
-          console.log("deleted: ", execution);
-          // this.assistants = new MatTableDataSource<ChatEntity>(response.data);
         },
         error: (error) => {
           this.isLoading = false

@@ -44,7 +44,7 @@ export class OrganaizerService {
     }
 
     redo(execution:Execution): Observable<Execution> {
-        return this.post(`rerun/${execution.id}`);
+        return this.post(`redo/${execution.id}`);
     }
 
     deleteExecution(execution:Execution): Observable<Execution> {

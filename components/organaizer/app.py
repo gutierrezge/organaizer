@@ -30,7 +30,7 @@ def health_check() -> HealthStatus:
 @app.route("/executions", methods=["GET"])
 @cross_origin()
 @rest_api
-def executions() -> Executions:
+def executions_list() -> Executions:
     return Executions(executions=dao.find_all())
 
 
@@ -46,7 +46,7 @@ def get_presigned_put_urls() -> PresignedUrlResponse:
 @app.route("/execution/<id>", methods=["GET"])
 @cross_origin()
 @rest_api
-def get_execution(id: str) -> Optional[Execution]:
+def find_execution(id: str) -> Optional[Execution]:
     execution: Execution = dao.find_by_id(UUID(id))
     if execution is not None and execution.status == "DONE":
         execution.source_image_url = minio_service.generate_presigned_get_url(
@@ -67,10 +67,10 @@ def create_execution() -> Execution:
 
     return execution
 
-@app.route("/rerun/<id>", methods=["POST"])
+@app.route("/redo/<id>", methods=["POST"])
 @cross_origin()
 @rest_api
-def rerun_execution(id: str) -> Execution:
+def redo_execution(id: str) -> Execution:
     execution: Execution = dao.find_by_id(UUID(id))
     dao.update(execution.id, 'PROCESSING')
     DetectionProcess(execution, dao, minio_service).start()

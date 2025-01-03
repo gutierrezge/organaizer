@@ -1,6 +1,7 @@
 <app-navbar></app-navbar>
 <div class="spinner-container" *ngIf="isLoading">
-    <mat-spinner></mat-spinner>
+  <mat-spinner></mat-spinner>
+  <span class="loading-text">Loading...</span>
 </div>
 <div class="home">
   <div class="container">
@@ -67,6 +68,9 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef> Actions </th>
           <td mat-cell *matCellDef="let element" >
+            <a mat-icon-button (click)="redo(element)" matTooltip="Redo this execution">
+              <mat-icon fontIcon="redo"></mat-icon>
+            </a>
             <a mat-icon-button (click)="deleteExecution(element)" matTooltip="Delete this execution">
               <mat-icon fontIcon="delete"></mat-icon>
             </a>

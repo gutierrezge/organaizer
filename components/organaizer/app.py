@@ -67,6 +67,16 @@ def create_execution() -> Execution:
 
     return execution
 
+@app.route("/rerun/<id>", methods=["POST"])
+@cross_origin()
+@rest_api
+def rerun_execution(id: str) -> Execution:
+    execution: Execution = dao.find_by_id(UUID(id))
+    dao.update(execution.id, 'PROCESSING')
+    DetectionProcess(execution, dao, minio_service).start()
+
+    return execution
+
 
 @app.route("/execution/<id>", methods=["DELETE"])
 @cross_origin()

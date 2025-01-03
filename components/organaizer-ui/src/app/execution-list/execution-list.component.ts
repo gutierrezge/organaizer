@@ -64,6 +64,18 @@ export class ExecutionListComponent implements OnInit, OnDestroy {
     return JSON.stringify(this.executions) != JSON.stringify(new_executions)
   }
 
+  redo(execution:Execution):void {
+    this.organaizerService.redo(execution).subscribe({
+      next: (execution:Execution) => {
+      },
+      error: (error) => {
+        this.isLoading = false
+        alert(error);
+      },
+      complete: () => this.loadExecutions()
+    });
+  }
+
   deleteExecution(execution:Execution):void {
     if (confirm("Are you sure you want to delete execution " + execution.id)) {
       this.isLoading = true;

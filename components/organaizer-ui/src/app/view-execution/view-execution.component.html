@@ -1,24 +1,36 @@
-<div class="details-container">
+<div class="spinner-container" *ngIf="!execution">
+    <mat-spinner></mat-spinner>
+    <span class="loading-text">Loading...</span>
+</div>
+<div class="details-container" *ngIf="execution">
     <mat-card class="specs-card">
         <div class="specs-header">
-            <div><label class="spec-label">{{this.execution?.id}}</label></div> <!-- Empty div for grid alignment -->
-            <a mat-icon-button href="/" matTooltip="Close" class="close-button">
-                <mat-icon fontIcon="close"></mat-icon>
-            </a>
+            <div><label class="spec-label">{{this.execution.id}}</label></div>
+            <div class="specs-header-buttons">
+                <a mat-icon-button (click)="redo()" matTooltip="Redo this execution">
+                    <mat-icon fontIcon="redo"></mat-icon>
+                </a>
+                <a mat-icon-button (click)="deleteExecution()" matTooltip="Delete this execution">
+                    <mat-icon fontIcon="delete"></mat-icon>
+                </a>
+                <a mat-icon-button href="/" matTooltip="Close" class="close-button">
+                    <mat-icon fontIcon="close"></mat-icon>
+                </a>
+            </div>
         </div>
         <div class="specs-grid">
             <div class="spec-item">
                 <label class="spec-label">Container Dimensions (cm)</label>
-                <div class="spec-value">{{this.execution?.container_width | number:'1.2-2'}} <sub>x</sub> {{this.execution?.container_height | number:'1.2-2'}} <sub>x</sub> {{this.execution?.container_depth | number:'1.2-2'}}</div>
+                <div class="spec-value">{{this.execution.container_width | number:'1.2-2'}} <sub>x</sub> {{this.execution?.container_height | number:'1.2-2'}} <sub>x</sub> {{this.execution?.container_depth | number:'1.2-2'}}</div>
             </div>
 
             <div class="spec-item">
                 <label class="spec-label">Boxes</label>
-                <div class="spec-value">{{this.execution?.total_boxes}}</div>
+                <div class="spec-value">{{this.execution.total_boxes}}</div>
             </div>
             <div class="spec-item">
                 <label class="spec-label">Est. Volume (cm<sup>3</sup>)</label>
-                <div class="spec-value">{{this.execution?.total_volume | number:'1.2-2'}}</div>
+                <div class="spec-value">{{this.execution.total_volume | number:'1.2-2'}}</div>
             </div>
         </div>
     </mat-card>
@@ -29,10 +41,10 @@
                 <mat-card-title>Prediction</mat-card-title>
             </mat-card-header>
             <div class="image-container">
-                <img [src]="this.execution?.predicted_image_url">
+                <img [src]="this.execution.predicted_image_url">
             </div>
         </mat-card>
-        <mat-card class="plan-card" *ngIf="this.execution and this.execution.plan">
+        <mat-card class="plan-card">
             <mat-card-header>
                 <mat-card-title>Loading Plan</mat-card-title>
             </mat-card-header>
@@ -69,7 +81,7 @@
         </mat-card>
     </div>
 
-    <mat-card class="plan-card boxes" *ngIf="this.execution and this.execution.boxes">
+    <mat-card class="plan-card boxes">
         <mat-card-header>
             <mat-card-title>Predicted Boxes</mat-card-title>
         </mat-card-header>

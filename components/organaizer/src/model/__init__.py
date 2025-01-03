@@ -98,6 +98,6 @@ class DetectedBoxResult(BaseModel):
 
 
 class DetetionConfig(BaseModel):
-    model: str = Field(default="yolov10n.pt")
+    model: str = Field(default="best.pt")
     confidence_threshold: float = Field(default=0.25)
     iou_threshold: float = Field(default=0.45)

@@ -21,7 +21,7 @@
 }
 .button-group {
     display: flex;
-    gap: 10px; /* Adjust spacing between buttons */
+    gap: 10px;
 }
 
 mat-header-row{
@@ -82,3 +82,17 @@ mat-header-row{
 .status-error {
     color: rgb(185, 16, 16) !important;
 }
+
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    gap: 1rem;
+  }
+  
+  .loading-text {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+  }

@@ -43,6 +43,10 @@ export class OrganaizerService {
         return this.post("presigned-put-url", {"key": filename});
     }
 
+    redo(execution:Execution): Observable<Execution> {
+        return this.post(`rerun/${execution.id}`);
+    }
+
     deleteExecution(execution:Execution): Observable<Execution> {
         return this.delete(`execution/${execution.id}`);
     }

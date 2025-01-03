@@ -14,9 +14,25 @@
 }
 
 .specs-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex; /* Change from grid to flex */
+  justify-content: space-between; /* Space between ID and buttons */
+  align-items: center; /* Vertically center items */
   margin-bottom: 1rem;
+}
+
+.specs-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.specs-header-buttons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
 }
 
 .close-button {
@@ -110,4 +126,18 @@ img {
   height: auto;
   object-fit: contain;
   border-radius: 4px;
+}
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  gap: 1rem;
+}
+
+.loading-text {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1rem;
 }

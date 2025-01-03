@@ -37,10 +37,10 @@ class YOLOService:
 
             detections.append(
                 DetectedBoxResult(
-                    x1=x1,
-                    y1=y1,
-                    x2=x2,
-                    y2=y2,
+                    x1=int(x1),
+                    y1=int(y1),
+                    x2=int(x2),
+                    y2=int(y2),
                     confidence=confidence,
                     class_id=class_id,
                     class_name=class_name,
@@ -97,12 +97,15 @@ class DetectionProcess(Thread):
 
     def run(self):
         try:
+            # Get image from storace
             image_bytes: bytes = self.minio_service.get_object_content(
                 self.execution.key
             )
+            # Convert to numpy image
             image: np.array = cv2.imdecode(
                 np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR
             )
+            # If image is too big, then resize it
             if image.shape[1] != MAX_WIDTH:
                 # Adjust image size and update the storage
                 image = self.resize(image)
@@ -111,39 +114,10 @@ class DetectionProcess(Thread):
                     self.execution.key, io.BytesIO(resized), resized.size
                 )
 
-            ############################################################################################
-            # TODO: REMOVE MOCKED DATA AND CALL self.yolo.predict(image) TO CALL YOLO MODEL
-            ############################################################################################
-            detections: List[DetectedBoxResult] = [
-                DetectedBoxResult(
-                    x1=128,
-                    y1=113,
-                    x2=185,
-                    y2=162,
-                    confidence=rnd.uniform(0.8, 1),
-                    class_id=0,
-                    class_name="box",
-                ),
-                DetectedBoxResult(
-                    x1=65,
-                    y1=138,
-                    x2=176,
-                    y2=293,
-                    confidence=rnd.uniform(0.8, 1),
-                    class_id=0,
-                    class_name="box",
-                ),
-                DetectedBoxResult(
-                    x1=183,
-                    y1=164,
-                    x2=220,
-                    y2=271,
-                    confidence=rnd.uniform(0.8, 1),
-                    class_id=0,
-                    class_name="box",
-                ),
-            ]
+            # Predict boxes in image
+            detections:List[DetectedBoxResult] = self.yolo.predict(image)
 
+            # Predict dimensions
             #############################################################################
             # TODO: REMOVE MOCKED DATA AND COMPUTE VOLUMETRIC DATA FOR EACH PREDICTED BOX
             #############################################################################
@@ -161,6 +135,7 @@ class DetectionProcess(Thread):
                 for box in detections
             ]
 
+            # Generate loading plan
             ##################################################################
             # TODO: REMOVE MOCKED DATA AND GENERATE THE CONTAINER LOADING PLAN
             ##################################################################
@@ -170,13 +145,14 @@ class DetectionProcess(Thread):
                 Clp(execution_id=self.execution.id, box_id=3, x=2, y=0, z=0),
             ]
 
+            # Save predicted data
             self.dao.delete_boxes(self.execution.id)
             self.dao.save_boxes(boxes)
 
             self.dao.delete_plan(self.execution.id)
             self.dao.save_plan(plan)
 
-            # Draw predictions into image and save it
+            # Draw predictions and save it
             _, preditect_image = cv2.imencode(
                 ".jpg", YOLOService.draw_detections(image, detections)
             )

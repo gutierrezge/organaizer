@@ -1,5 +1,5 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
-import { CreateExecutionRequest, Execution, Executions, PresignedUrlResponse } from "../models/models";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { CreateExecutionRequest, Execution, Executions, UploadImagesResponse, SelectedFile, UploadImagesRequest } from "../models/models";
 import { Injectable } from "@angular/core";
 import { Observable, throwError } from "rxjs";
 import { catchError } from 'rxjs/operators';
@@ -39,8 +39,17 @@ export class OrganaizerService {
         return this.get(`execution/${id}`);
     }
 
-    presignedUrls(filename:string): Observable<PresignedUrlResponse> {
-        return this.post("presigned-put-url", {"key": filename});
+    presignedUrls(selectedFiles:SelectedFile[]): Observable<UploadImagesResponse> {
+        const req:UploadImagesRequest = {
+            files: []
+        }
+        for (let selectedFile of selectedFiles) {
+            req.files.push({
+                id: selectedFile.id,
+                filename: selectedFile.file.name
+            })
+        }
+        return this.post("presigned-put-url", req);
     }
 
     redo(execution:Execution): Observable<Execution> {

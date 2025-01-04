@@ -1,4 +1,5 @@
 export interface Box {
+    id:number
     execution_id:string
     x1:number
     x2:number
@@ -22,24 +23,25 @@ export interface Clp {
 }
 export interface CreateExecutionRequest {
     id:string
-    key:string
     container_width:number
     container_height:number
     container_depth:number
 }
+export interface PredictedImage {
+    id:string
+    url:string
+    boxes:Box[]
+}
 export interface Execution {
     id:string
-    key:string
     container_width:number
     container_height:number
     container_depth:number
-    source_image_url?:string
-    predicted_image_url?:string
+    predicted_images: PredictedImage[]
     status:string
     status_message?:number
     created_on:Date
     modified_on:Date
-    boxes: Box[]
     plan: Clp[]
     total_boxes:number
     total_volume:number
@@ -48,10 +50,25 @@ export interface Execution {
 export interface Executions {
     executions:Execution[]
 }
-
-export interface PresignedUrlResponse {
+export interface UploadImageRequest {
+    id:string
+    filename:string
+}
+export interface UploadImagesRequest {
+    files: UploadImageRequest[]
+}
+export interface UploadImageResponse {
     id: string
-    key: string
     url: string
-    expiration: number
+}
+
+export interface UploadImagesResponse {
+    id: string
+    urls: UploadImageResponse[]
+}
+
+export interface SelectedFile {
+    id: string
+    file: File
+    base64Content: string
 }

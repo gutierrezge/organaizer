@@ -20,7 +20,9 @@ class Clp(BaseModel):
 
 class Box(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    id:Optional[int] = None
     execution_id: UUID
+    image_key:str
     x1: int
     x2: int
     y1: int
@@ -42,49 +44,65 @@ class Box(BaseModel):
         return (self.x1, self.y1), (self.x2, self.y2)
 
 
+class PredictedImage(BaseModel):
+    id:UUID
+    url:str
+    boxes:List[Box]
+
+
 class Execution(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: UUID
-    key: str
-    source_image_url: Optional[str] = None
-    predicted_image_url: Optional[str] = None
     container_width: float
     container_height: float
     container_depth: float
     status: ExecutionStatus = Field(default="PROCESSING")
     status_message: Optional[str] = None
+    predicted_images:List[PredictedImage] = Field(default=[])
+    plan: List[Clp] = Field(default=[])
     created_on: datetime = Field(default=datetime.now())
     modified_on: datetime = Field(default=datetime.now())
-    boxes: List[Box] = Field(default=[])
-    plan: List[Clp] = Field(default=[])
+
 
     @computed_field
     @property
     def total_boxes(self) -> int:
-        return len(self.boxes) if self.boxes is not None else 0
+        return sum([len(pi.boxes) for pi in self.predicted_images ]) if self.predicted_images is not None else 0
 
     @computed_field
     @property
     def total_volume(self) -> float:
-        return sum([b.volume for b in self.boxes]) if self.boxes is not None else 0
+        return sum([b.volume for pi in self.predicted_images for b in pi.boxes]) if self.predicted_images is not None else 0
 
 
 class Executions(BaseModel):
     executions: List[Execution]
 
 
-class PresignedUrlRequest(BaseModel):
-    key: str
-    expiration: int = Field(
-        default=3600, description="Expiration time in seconds. Defaults to 1 hour."
-    )
-
-
-class PresignedUrlResponse(BaseModel):
+class UploadImageRequest(BaseModel):
     id: UUID
-    key: str
-    url: str
-    expiration: int
+    filename: str
+
+class UploadImagesRequest(BaseModel):
+    files:List[UploadImageRequest]
+
+
+class UploadImageResponse(BaseModel):
+    id:UUID
+    url:str
+
+
+class UploadImagesResponse(BaseModel):
+    id: UUID
+    urls: List[UploadImageResponse]
+
+
+class DownloadImagesRequest(BaseModel):
+    id:UUID
+
+
+class DownloadImagesResponse(BaseModel):
+    urls: List[str]
 
 
 class DetectedBoxResult(BaseModel):
@@ -99,5 +117,5 @@ class DetectedBoxResult(BaseModel):
 
 class DetetionConfig(BaseModel):
     model: str = Field(default="best.pt")
-    confidence_threshold: float = Field(default=0.25)
+    confidence_threshold: float = Field(default=0.5)
     iou_threshold: float = Field(default=0.45)

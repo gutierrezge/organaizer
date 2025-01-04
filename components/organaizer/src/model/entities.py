@@ -26,7 +26,6 @@ class ExecutionStatus(enum.Enum):
 class ExecutionEntity(Base):
     __tablename__ = "execution"
     id = Column(UUID, primary_key=True)
-    key = Column(String, nullable=False)
     container_width = Column(Numeric(precision=15, scale=2), nullable=False)
     container_height = Column(Numeric(precision=15, scale=2), nullable=False)
     container_depth = Column(Numeric(precision=15, scale=2), nullable=False)
@@ -42,6 +41,7 @@ class BoxEntity(Base):
     __tablename__ = "box"
     id = Column(Integer, primary_key=True, autoincrement=True)
     execution_id = Column(UUID, ForeignKey("execution.id"), nullable=False)
+    image_key = Column(String, nullable=False)
     x1 = Column(Integer, nullable=False)
     x2 = Column(Integer, nullable=False)
     y1 = Column(Integer, nullable=False)

@@ -2,6 +2,7 @@ import io
 import random as rnd
 from typing import List, Union
 import numpy as np
+from uuid import UUID
 from threading import Thread
 from ultralytics import YOLO
 import cv2
@@ -12,6 +13,7 @@ from src.service import MinioService
 
 logger = log.configure()
 MAX_WIDTH = 300
+FONT_FACE = cv2.FONT_HERSHEY_PLAIN
 
 
 class YOLOService:
@@ -60,10 +62,11 @@ class YOLOService:
         img_draw: np.ndarray = image.copy()
 
         for det in detections:
+            cv2.putText(img_draw, f'{det.confidence*100:.02f}%', (det.x1, det.y1), FONT_FACE, 0.5, (0,0,0), font_weight, cv2.LINE_AA)
             cv2.rectangle(
                 img_draw,
-                (int(det.x1), int(det.y1)),
-                (int(det.x2), int(det.y2)),
+                (det.x1, det.y1),
+                (det.x2, det.y2),
                 color=box_border_color,
                 thickness=font_weight,
             )
@@ -88,7 +91,7 @@ class DetectionProcess(Thread):
 
     def done(self):
         self.dao.update(self.execution.id, "DONE")
-        logger.info(f"Predictions finished for image {self.execution.key}")
+        logger.info(f"Predictions finished for execution {self.execution.id}")
 
     def resize(self, img: np.array, target_width: int = MAX_WIDTH):
         height, width = img.shape[:2]
@@ -97,45 +100,60 @@ class DetectionProcess(Thread):
 
     def run(self):
         try:
-            # Get image from storace
-            image_bytes: bytes = self.minio_service.get_object_content(
-                self.execution.key
-            )
-            # Convert to numpy image
-            image: np.array = cv2.imdecode(
-                np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR
-            )
-            # If image is too big, then resize it
-            if image.shape[1] != MAX_WIDTH:
-                # Adjust image size and update the storage
-                image = self.resize(image)
-                _, resized = cv2.imencode(".jpg", image)
+            boxes: List[Box] = []
+            for key in self.minio_service.list_files(f"{self.execution.id}/source/"):
+                prediction_image_key = key.replace("source", "prediction")
+                # Get image from storage
+                image_bytes: bytes = self.minio_service.get_object_content(key)
+                
+                # Convert to numpy image
+                image: np.array = cv2.imdecode(
+                    np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR
+                )
+                
+                # If image is too big, then resize it
+                if image.shape[1] != MAX_WIDTH:
+                    # Adjust image size and update the storage
+                    image = self.resize(image)
+                    _, resized = cv2.imencode(".jpg", image)
+                    
+                    self.minio_service.put_object(
+                        key, io.BytesIO(resized), resized.size
+                    )
+
+                # Predict boxes in image
+                detections:List[DetectedBoxResult] = self.yolo.predict(image)
+
+                # Predict dimensions
+                #############################################################################
+                # TODO: REMOVE MOCKED DATA AND COMPUTE VOLUMETRIC DATA FOR EACH PREDICTED BOX
+                #############################################################################
+                boxes.extend([
+                    Box(
+                        execution_id=self.execution.id,
+                        image_key=prediction_image_key,
+                        x1=box.x1,
+                        y1=box.y1,
+                        x2=box.x2,
+                        y2=box.y2,
+                        width=rnd.uniform(5, 30),
+                        height=rnd.uniform(5, 30),
+                        depth=rnd.uniform(5, 30),
+                    )
+                    for box in detections
+                ])
+
+                # Draw predictions on image and save it
+                _, preditect_image = cv2.imencode(
+                    ".jpg", YOLOService.draw_detections(image, detections)
+                )
                 self.minio_service.put_object(
-                    self.execution.key, io.BytesIO(resized), resized.size
+                    prediction_image_key,
+                    io.BytesIO(preditect_image),
+                    preditect_image.size,
                 )
-
-            # Predict boxes in image
-            detections:List[DetectedBoxResult] = self.yolo.predict(image)
-
-            # Predict dimensions
-            #############################################################################
-            # TODO: REMOVE MOCKED DATA AND COMPUTE VOLUMETRIC DATA FOR EACH PREDICTED BOX
-            #############################################################################
-            boxes: List[Box] = [
-                Box(
-                    execution_id=self.execution.id,
-                    x1=box.x1,
-                    y1=box.y1,
-                    x2=box.x2,
-                    y2=box.y2,
-                    width=rnd.uniform(5, 30),
-                    height=rnd.uniform(5, 30),
-                    depth=rnd.uniform(5, 30),
-                )
-                for box in detections
-            ]
-
-            # Generate loading plan
+            
+            # Generate container loading plan
             ##################################################################
             # TODO: REMOVE MOCKED DATA AND GENERATE THE CONTAINER LOADING PLAN
             ##################################################################
@@ -145,24 +163,15 @@ class DetectionProcess(Thread):
                 Clp(execution_id=self.execution.id, box_id=3, x=2, y=0, z=0),
             ]
 
-            # Save predicted data
+            # Save predicted boxes
             self.dao.delete_boxes(self.execution.id)
             self.dao.save_boxes(boxes)
 
+            # Save generated plan
             self.dao.delete_plan(self.execution.id)
             self.dao.save_plan(plan)
 
-            # Draw predictions and save it
-            _, preditect_image = cv2.imencode(
-                ".jpg", YOLOService.draw_detections(image, detections)
-            )
-            self.minio_service.put_object(
-                f"{self.execution.id}/result.jpg",
-                io.BytesIO(preditect_image),
-                preditect_image.size,
-            )
-
             self.done()
         except Exception as e:
-            self.error(f"Failed to process image. {self.execution.key}. {str(e)}")
+            self.error(f"Failed to process execution {self.execution.id}. {str(e)}")
             raise e

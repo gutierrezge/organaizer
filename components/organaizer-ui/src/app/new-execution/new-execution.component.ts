@@ -10,7 +10,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { OrganaizerService } from '../service/service';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
-import { CreateExecutionRequest, PresignedUrlResponse } from '../models/models';
+import { CreateExecutionRequest, SelectedFile, UploadImagesResponse } from '../models/models';
+import { v4 as uuidv4 } from 'uuid';
+import { forkJoin, Observable } from 'rxjs';
+
 
 @Component({
   selector: 'app-new-execution',
@@ -28,8 +31,7 @@ export class NewExecutionComponent implements AfterViewInit {
   containerWidth?:number;
   containerHeight?:number;
   containerDepth?:number;
-  selectedFile?:File
-  base64Image?:string
+  selectedFiles:SelectedFile[] = []
   error:boolean = false;
   hasAllData = false;
   @ViewChild('fileUpload') fileUpload!: ElementRef;
@@ -41,47 +43,51 @@ export class NewExecutionComponent implements AfterViewInit {
     this.containerWidth = undefined;
     this.containerHeight = undefined;
     this.containerDepth = undefined;
-    this.selectedFile = undefined;
-    this.base64Image = undefined;
+    this.selectedFiles = [];
   }
 
   newExecution(): void {
     this.error = false;
-    if (this.containerWidth && this.containerHeight && this.containerDepth && this.selectedFile) {
+    if (this.containerWidth && this.containerHeight && this.containerDepth && this.selectedFiles.length > 0) {
       this.isLoading = true;
-      const fileToUpload:File = this.selectedFile;
       const w = this.containerWidth;
       const h = this.containerHeight;
       const d = this.containerDepth;
-      this.organaizerService.presignedUrls(fileToUpload.name).subscribe({
-        next: (url:PresignedUrlResponse) => {
+      this.organaizerService.presignedUrls(this.selectedFiles).subscribe({
+        next: (resp:UploadImagesResponse) => {
+          const urlsDictionary = resp.urls.reduce((acc, item) => {
+              acc[item.id] = item.url;
+              return acc;
+          }, {} as { [key: string]: string });
+
           const execution:CreateExecutionRequest = {
-            id: url.id,
-            key: url.key,
+            id: resp.id,
             container_width: w,
             container_height: h,
             container_depth: d
           }
-          this.organaizerService.uploadFile(url.url, fileToUpload).subscribe({
-            next: () => {
+
+          const uploads:Observable<Object>[] = []
+          for (const selectedFile of this.selectedFiles) {
+            uploads.push(this.organaizerService.uploadFile(urlsDictionary[selectedFile.id], selectedFile.file));
+          }
+          forkJoin(uploads).subscribe({
+            complete: () => {
+              this.isLoading = true;
               this.organaizerService.createExecution(execution).subscribe({
-                next:() => {
-                  this.router.navigate(['/'])
-                },
+                next:() => this.router.navigate(['/']),
                 error: (error) => {
-                  this.isLoading = false
+                  this.isLoading = false;
                   alert(error);
                 },
                 complete: () => this.isLoading = false
               });
             },
             error: (error) => {
-              this.isLoading = false
+              this.isLoading = false;
               alert(error);
             },
-            complete: () => this.isLoading = false
           });
-          
         },
         error: (error) => {
           this.isLoading = false
@@ -94,17 +100,8 @@ export class NewExecutionComponent implements AfterViewInit {
     }
   }
 
-  removeFile():void {
-    this.selectedFile = undefined;
-    this.base64Image = undefined;
-    this.fileUpload.nativeElement.value = '';
-  }
-
-  async onFileSelected(event: any): Promise<void> {
-    if (event.target.files && event.target.files.length) {
-      this.selectedFile = event.target.files[0];
-      this.base64Image = await this.fileToBase64(event.target.files[0]);
-    }
+  removeFile(selectedFile:SelectedFile):void {
+    this.selectedFiles = this.selectedFiles.filter(sf => sf.id !== selectedFile.id);
   }
 
   onDragLeave(event: DragEvent) {
@@ -119,55 +116,51 @@ export class NewExecutionComponent implements AfterViewInit {
     this.isDragging = true;
   }
 
+  async onFilesSelected(event: any): Promise<void> {
+    await this.addFiles(event.target.files);
+  }
+
   async onDrop(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
     
-    if (event.dataTransfer?.files?.length) {
-      this.selectedFile = event.dataTransfer?.files[0]
-      this.base64Image = await this.fileToBase64(event.dataTransfer?.files[0]);
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) {
+      this.addFiles(event.dataTransfer.files);
     }
   }
 
   async onPaste(event: ClipboardEvent) {
-    const items = event.clipboardData?.items;
-    
-    if (items) {
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile();
-          if (file) {
-            this.selectedFile = file;
-            this.base64Image = await this.fileToBase64(file);
-            break;
-          }
-        }
+    if (event?.clipboardData?.items) {
+      const files: File[] = Array.from(event.clipboardData.items)
+        .filter(item => item.type.startsWith('image/'))
+        .map(item => item.getAsFile())
+        .filter((file): file is File => file !== null);
+        
+      if (files.length > 0) {
+        await this.addFiles(files);
       }
     }
   }
 
-  private async fileToBase64(file: File, maxSizeInMB = 5): Promise<string> {
-    // Check file size
-    const fileSizeInMB = file.size / (1024 * 1024);
-    if (fileSizeInMB > maxSizeInMB) {
-      throw new Error(`File size exceeds ${maxSizeInMB}MB limit`);
+  private async addFiles(files: FileList | File[]) {
+    if (!files || files.length == 0) {
+      return;
     }
-  
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      this.selectedFiles.push({
+        id: uuidv4(),
+        file: file,
+        base64Content: await this.fileToBase64(file)
+      });
+    }
+  }
+
+  private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to convert file to base64'));
-        }
-      };
-  
-      reader.onerror = (error) => {
-        reject(error);
-      };
-  
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }

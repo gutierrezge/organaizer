@@ -1,16 +1,24 @@
 import os
 import io
+from typing import List
 from datetime import timedelta
-from uuid import uuid4
+from uuid import uuid4, UUID
 from minio import Minio
 from src import log
-from src.model import PresignedUrlRequest, PresignedUrlResponse
+from src.model import (
+    UploadImagesResponse,
+    UploadImagesRequest,
+    UploadImageResponse,
+    DownloadImagesRequest,
+    DownloadImagesResponse,
+)
 from dotenv import load_dotenv, find_dotenv
 
+
 load_dotenv(find_dotenv())
-
-
 logger = log.configure()
+PUT_EXPIRATION_SECONDS = 5 * 60
+GET_EXPIRATION_SECONDS = 60 * 60
 
 
 class MinioService:
@@ -27,39 +35,45 @@ class MinioService:
         )
         self._ensure_bucket_exists()
 
+
     def _ensure_bucket_exists(self) -> None:
         if not self.client.bucket_exists(self.bucket_name):
             self.client.make_bucket(self.bucket_name)
 
+
     def generate_presigned_put_url(
-        self, request: PresignedUrlRequest
-    ) -> PresignedUrlResponse:
+        self, request: UploadImagesRequest
+    ) -> UploadImagesResponse:
         id = uuid4()
-        key = f"{id}/{request.key}"
-        url = self.client.presigned_put_object(
+        urls = []
+        for file_request in request.files:
+            ext = file_request.filename[file_request.filename[:].rfind('.')+1:]
+            urls.append(UploadImageResponse(
+                id=file_request.id,
+                url=self.client.presigned_put_object(
+                    bucket_name=self.bucket_name,
+                    object_name=f"{str(id)}/source/{file_request.id}.{ext}",
+                    expires=timedelta(seconds=PUT_EXPIRATION_SECONDS),
+                )
+            ))
+        
+        return UploadImagesResponse(
+            id=id,
+            urls=urls
+        )
+    
+    def list_files(self, prefix:str) -> List[str]:
+        objects:list = self.client.list_objects(
+            self.bucket_name,
+            prefix=prefix,
+        )
+        return [obj.object_name for obj in objects]
+
+    def generate_presigned_get_url(self, key:str) -> str:
+        return self.client.presigned_get_object(
             bucket_name=self.bucket_name,
             object_name=key,
-            expires=timedelta(seconds=request.expiration),
-        )
-
-        return PresignedUrlResponse(
-            id=id, key=key, url=url, expiration=request.expiration
-        )
-
-    def generate_presigned_get_url(
-        self, request: PresignedUrlRequest
-    ) -> PresignedUrlResponse:
-        url = self.client.presigned_get_object(
-            bucket_name=self.bucket_name,
-            object_name=request.key,
-            expires=timedelta(seconds=request.expiration),
-        )
-
-        return PresignedUrlResponse(
-            id=request.key[: request.key.find("/")],
-            key=request.key,
-            url=url,
-            expiration=request.expiration,
+            expires=timedelta(seconds=GET_EXPIRATION_SECONDS)
         )
 
     def put_object(self, key: str, data: io.BytesIO, length: int) -> None:

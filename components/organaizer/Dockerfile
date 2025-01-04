@@ -19,7 +19,6 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install
 
 # Copy ode
-COPY . .
+# COPY . .
 
-EXPOSE 5000
 CMD ["poetry", "run", "python", "app.py"]

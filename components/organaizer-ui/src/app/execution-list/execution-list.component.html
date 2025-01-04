@@ -36,19 +36,19 @@
         </ng-container>
 
         <ng-container matColumnDef="container">
-            <th mat-header-cell *matHeaderCellDef> Container Dimensions (cm) </th>
+            <th mat-header-cell *matHeaderCellDef>Container Capacity (cm<sup>3</sup>) </th>
             <td mat-cell *matCellDef="let element" >
-              {{ element.container_width | number:'1.2-2' }} <sub>x</sub> {{ element.container_height | number:'1.2-2' }} <sub>x</sub> {{ element.container_depth | number:'1.2-2' }}
+              {{ element.container_width*element.container_height*element.container_depth | number:'1.2-2' }}
             </td>
         </ng-container>
         <ng-container matColumnDef="boxes">
-            <th mat-header-cell *matHeaderCellDef> Boxes </th>
+            <th mat-header-cell *matHeaderCellDef>Total Boxes</th>
             <td mat-cell *matCellDef="let element">
               {{ element.total_boxes }}
             </td>
         </ng-container>
         <ng-container matColumnDef="volume">
-            <th mat-header-cell *matHeaderCellDef> Volume (cm<sup>3</sup>) </th>
+            <th mat-header-cell *matHeaderCellDef>Boxes Vol. (cm<sup>3</sup>) </th>
             <td mat-cell *matCellDef="let element">
               {{ element.total_volume | number:'1.2-2'}}
             </td>
@@ -61,8 +61,8 @@
         </ng-container>
 
         <ng-container matColumnDef="created">
-          <th mat-header-cell *matHeaderCellDef> Created </th>
-          <td mat-cell *matCellDef="let element"> {{ element.created_on }}</td>
+          <th mat-header-cell *matHeaderCellDef> Created Date</th>
+          <td mat-cell *matCellDef="let element"> {{ element.created_on | date:'yyyy-MM-dd HH:mm:ss'}}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

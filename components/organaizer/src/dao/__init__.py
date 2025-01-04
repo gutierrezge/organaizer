@@ -72,17 +72,14 @@ class ExecutionDAO:
         with self.db.session() as session:
             db_execution = ExecutionEntity(
                 id=execution.id,
-                key=execution.key,
                 container_width=execution.container_width,
                 container_height=execution.container_height,
                 container_depth=execution.container_depth,
                 status=ExecutionStatus[execution.status],
                 status_message=None,
-                created_on=datetime.now(),
-                modified_on=datetime.now(),
+                created_on=execution.created_on,
+                modified_on=execution.modified_on,
             )
-            execution.created_on = db_execution.created_on
-            execution.modified_on = db_execution.modified_on
             session.add(db_execution)
             session.flush()
         return execution
@@ -101,29 +98,11 @@ class ExecutionDAO:
     def _to_execution_(self, e: ExecutionEntity, session):
         return Execution(
             id=e.id,
-            key=e.key,
             container_width=e.container_width,
             container_height=e.container_height,
             container_depth=e.container_depth,
             status=e.status.value,
             status_message=e.status_message,
-            boxes=[
-                Box(
-                    execution_id=b.execution_id,
-                    x1=b.x1,
-                    y1=b.y1,
-                    x2=b.x2,
-                    y2=b.y2,
-                    width=b.width,
-                    height=b.height,
-                    depth=b.depth,
-                    created_on=b.created_on,
-                    modified_on=b.modified_on,
-                )
-                for b in session.query(BoxEntity)
-                .filter(BoxEntity.execution_id == e.id)
-                .all()
-            ],
             plan=[
                 Clp(
                     execution_id=p.execution_id,
@@ -135,12 +114,33 @@ class ExecutionDAO:
                     modified_on=p.modified_on,
                 )
                 for p in session.query(ClpEntity)
-                .filter(ClpEntity.execution_id == e.id)
-                .all()
+                    .filter(ClpEntity.execution_id == e.id)
+                    .all()
             ],
             created_on=e.created_on,
             modified_on=e.modified_on,
         )
+    
+    def find_boxes(self, image_key:str) -> List[Box]:
+        with self.db.session() as session:
+            return [
+                Box(
+                    id=b.id,
+                    execution_id=b.execution_id,
+                    image_key=b.image_key,
+                    x1=b.x1,
+                    y1=b.y1,
+                    x2=b.x2,
+                    y2=b.y2,
+                    width=b.width,
+                    height=b.height,
+                    depth=b.depth,
+                    created_on=b.created_on,
+                    modified_on=b.modified_on
+                )
+                for b in session.query(BoxEntity).filter(BoxEntity.image_key == image_key).all()
+            ]
+
 
     def find_all(self) -> List[Execution]:
         with self.db.session() as session:
@@ -174,7 +174,7 @@ class ExecutionDAO:
     def save_boxes(self, boxes: List[Box]) -> List[Box]:
         with self.db.session() as session:
             for box in boxes:
-                session.add(BoxEntity(**box.model_dump(exclude={"volume", "bbox"})))
+                session.add(BoxEntity(**box.model_dump(exclude={"id", "volume", "bbox"})))
             session.flush()
         return boxes
 

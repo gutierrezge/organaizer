@@ -19,3 +19,6 @@ RUN pip install jupyter opencv-python pandas numpy matplotlib seaborn scikit-lea
 
 # Run jupyter using python enviroment when container starts
 CMD jupyter notebook --allow-root --ip=0.0.0.0
+# CMD python3 capture.py
+# CMD python3 calibrate.py
+# CMD python3 detect.py

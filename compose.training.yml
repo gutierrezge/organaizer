@@ -6,11 +6,22 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8888:8888"
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
     volumes:
       - ./components/training:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
     environment:
       - JUPYTER_TOKEN=huAUCRkXiqW3JJW2QuyWjoJPCHY6lTWvkW5c5SbcXdx2hZEeFdQShrVOBK67QXP2
       - NVIDIA_VISIBLE_DEVICES=all
+      - DISPLAY=${DISPLAY}
     deploy:
       resources:
         reservations:

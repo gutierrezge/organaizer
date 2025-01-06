@@ -208,3 +208,8 @@ Thumbs.db
 venv/
 
 .data
+
+*.pt
+*.onnx
+!best.pt
+!best.onnx

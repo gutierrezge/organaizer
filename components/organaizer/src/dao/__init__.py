@@ -103,13 +103,14 @@ class ExecutionDAO:
             container_depth=e.container_depth,
             status=e.status.value,
             status_message=e.status_message,
+            plan_remarks=e.plan_remarks,
             plan=[
                 Clp(
                     execution_id=p.execution_id,
                     box_id=p.box_id,
                     x=p.x,
                     y=p.y,
-                    z=p.y,
+                    z=p.z,
                     created_on=p.created_on,
                     modified_on=p.modified_on,
                 )
@@ -120,6 +121,26 @@ class ExecutionDAO:
             created_on=e.created_on,
             modified_on=e.modified_on,
         )
+    
+    def find_boxes_by_execution_id(self, execution_id:UUID) -> List[Box]:
+        with self.db.session() as session:
+            return [
+                Box(
+                    id=b.id,
+                    execution_id=b.execution_id,
+                    image_key=b.image_key,
+                    x1=b.x1,
+                    y1=b.y1,
+                    x2=b.x2,
+                    y2=b.y2,
+                    width=b.width,
+                    height=b.height,
+                    depth=b.depth,
+                    created_on=b.created_on,
+                    modified_on=b.modified_on
+                )
+                for b in session.query(BoxEntity).filter(BoxEntity.execution_id == execution_id).all()
+            ]
     
     def find_boxes(self, image_key:str) -> List[Box]:
         with self.db.session() as session:
@@ -170,11 +191,31 @@ class ExecutionDAO:
             db_execution.status_message = status_message
 
         return self.find_by_id(execution_id)
+    
+    def update_plan_remarks(
+        self,
+        execution_id: UUID,
+        plan_remarks: Optional[str] = None,
+    ) -> Optional[Execution]:
+        with self.db.session() as session:
+            db_execution = (
+                session.query(ExecutionEntity)
+                .filter(ExecutionEntity.id == execution_id)
+                .with_for_update()
+                .first()
+            )
+
+            if not db_execution:
+                return None
+
+            db_execution.plan_remarks = plan_remarks
+
+        return self.find_by_id(execution_id)
 
     def save_boxes(self, boxes: List[Box]) -> List[Box]:
         with self.db.session() as session:
             for box in boxes:
-                session.add(BoxEntity(**box.model_dump(exclude={"id", "volume", "bbox"})))
+                session.add(BoxEntity(**box.model_dump(exclude={"id", "volume", "bbox", "inplan"})))
             session.flush()
         return boxes
 

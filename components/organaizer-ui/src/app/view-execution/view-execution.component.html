@@ -31,7 +31,7 @@
             <div class="spec-item">
                 <label class="spec-label">Container Volume (cm<sup>3</sup>)</label>
                 <div class="spec-value">
-                    {{execution.container_width * execution.container_height * execution.container_depth | number:'1.2-2'}}
+                    {{execution.container_width*execution.container_height*execution.container_depth | number:'1.2-2'}}
                 </div>
             </div>
 
@@ -41,7 +41,7 @@
             </div>
             <div class="spec-item">
                 <label class="spec-label">Total Boxes Volume (cm<sup>3</sup>)</label>
-                <div class="spec-value">{{execution.total_volume | number:'1.2-2'}}</div>
+                <div class="spec-value" [ngClass]="{'red-text': execution.total_volume > (execution.container_width*execution.container_height*execution.container_depth)}">{{execution.total_volume | number:'1.2-2'}}</div>
             </div>
         </div>
     </mat-card>
@@ -96,6 +96,9 @@
                         <div class="spec-value">{{p.z}}</div>
                     </div>
                 </div>
+                <div class="spec-item">
+                    <div class="spec-value">Remarks: {{execution.plan_remarks}}</div>
+                </div>
             </div>
         </mat-card>
     </div>
@@ -123,6 +126,9 @@
             <div class="spec-item">
                 <label class="spec-label">Est. Volume (cm<sup>3</sup>)</label>
             </div>
+            <div class="spec-item">
+                <label class="spec-label">Fit in Container</label>
+            </div>
         </div>
         <ng-container *ngFor="let predicted_image of execution.predicted_images">
             <ng-container *ngFor="let box of predicted_image.boxes">
@@ -144,6 +150,15 @@
                     </div>
                     <div class="spec-item">
                         <div class="spec-value">{{ box.volume | number:'1.2-2' }}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">
+                            @if (!box.inplan) {
+                                <mat-icon fontIcon="close" class="red-text"></mat-icon>
+                            } @else {
+                                <mat-icon fontIcon="check" class="green-text"></mat-icon>
+                            }
+                        </div>
                     </div>
                 </div>
             </ng-container>

@@ -57,7 +57,7 @@
 /* Boxes table grid */
 .boxes .specs-grid {
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 1.5fr;
+  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 1.5fr 0.5fr;
   gap: 1rem;
   align-items: center;
 }
@@ -196,4 +196,11 @@ img {
 
 .prediction-item:hover .hover-overlay {
   background-color: rgba(0, 0, 0, 0.2);
+}
+
+.red-text{
+  color: red;
+}
+.green-text{
+  color: green;
 }

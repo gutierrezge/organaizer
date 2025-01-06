@@ -9,6 +9,7 @@ export interface Box {
     height:number
     depth:number
     volume:number
+    inplan:boolean
     created_on:Date
     modified_on:Date
 }
@@ -39,10 +40,11 @@ export interface Execution {
     container_depth:number
     predicted_images: PredictedImage[]
     status:string
-    status_message?:number
+    status_message?:string
     created_on:Date
     modified_on:Date
     plan: Clp[]
+    plan_remarks?:string
     total_boxes:number
     total_volume:number
 }

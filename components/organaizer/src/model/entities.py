@@ -31,6 +31,7 @@ class ExecutionEntity(Base):
     container_depth = Column(Numeric(precision=15, scale=2), nullable=False)
     status = Column(Enum(ExecutionStatus), nullable=False)
     status_message = Column(Text, nullable=True)
+    plan_remarks = Column(Text, nullable=True)
     created_on = Column(DateTime, nullable=False, default=datetime.now)
     modified_on = Column(
         DateTime, nullable=False, default=datetime.now, onupdate=datetime.now

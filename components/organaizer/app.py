@@ -41,13 +41,18 @@ def executions_list() -> Executions:
 def find_predicted_images(execution:Execution) -> Optional[Execution]:
     if execution is not None and execution.status == "DONE":
         images_key:List[str] = minio_service.list_files(f"{execution.id}/prediction/")
+        planned_box_ids = [p.box_id for p in execution.plan]
         predicted_images:List[PredictedImage] = []
         for key in images_key:
-            predicted_images.append(PredictedImage(
+            images = PredictedImage(
                 id=UUID(key[key.rfind('/')+1:key.rfind('.')]),
                 url=minio_service.generate_presigned_get_url(key),
                 boxes=dao.find_boxes(key)
-            ))
+            )
+            predicted_images.append(images)
+            for box in images.boxes:
+                box.inplan = box.id in planned_box_ids
+
         execution.predicted_images = predicted_images
     return execution
 

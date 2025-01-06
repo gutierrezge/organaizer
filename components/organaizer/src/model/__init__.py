@@ -36,6 +36,7 @@ class Box(BaseModel):
     width: float
     height: float
     depth: float
+    inplan: bool = Field(default=False)
     created_on: datetime = Field(default=datetime.now())
     modified_on: datetime = Field(default=datetime.now())
 
@@ -64,6 +65,7 @@ class Execution(BaseModel):
     container_depth: float
     status: ExecutionStatus = Field(default="PROCESSING")
     status_message: Optional[str] = None
+    plan_remarks: Optional[str] = None
     predicted_images:List[PredictedImage] = Field(default=[])
     plan: List[Clp] = Field(default=[])
     created_on: datetime = Field(default=datetime.now())
@@ -119,6 +121,36 @@ class DetectedBoxResult(BaseModel):
     y2: int
     mask:Optional[np.ndarray] = None
 
+
+class GenAIConfig(BaseModel):
+    model:str = Field(default="claude-3-5-sonnet-20241022")
+    max_tokens:int = Field(default=300)
+    image_instructions:str = Field(default=""""Goal: Provide the approximated values for the width, height, depth in centimeters of the box in the image using the aruco of 3.5 by 3.5 centimeters that comes in it. Do not return anything else but a JSON string. Example json return {\"width\": 45.3, \"height\":5.56, \"depth\":6.72}""")
+    clp_instructions:str = Field(default="""Goal: Create a container loading plan for a container of width={width}, height={height} and depth={depth} returning a JSON object having the following attributes:
+ plan: a list of objects having the execution_id ({execution_id}), box_id, x, y and z box order coordinates, for example: [{{ \"exeution_id\": \"4a41abd9-69dd-4da4-af97-9a6178992591\", \"box_id\": 1, \"x\": 0, \"y\":0, \"z\":0}}, {{ \"exeution_id\": \"4a41abd9-69dd-4da4-af97-9a6178992591\", \"box_id\": 2, \"x\": 1, \"y\":0, \"z\":0}}, ...]
+ left_over_boxes: a list of integers containing the box_id that did not fit due to overload
+ remarks: a string to comment if all boxes fitted in the container or the total amount of boxes that did not fit.
+The order of the boxes must be from left to right (x), bottom to top (y), back to forth (z)
+The x,y and z values are not coordinates but the box order a value of 4,0,0,0 means box 4 goes the very first where the 5,1,0,0 means that box 5 goes next to box 4.
+Make sure that as boxes are planed into order they do not overflow the containers dimension.
+Boxes in y-axis must have boxes below to support it. Boxes in z-axis must have boxes behind to support them.
+Take your time to validate the plan and Do not return a response until the plan has been validated.
+Do not return anything else but a JSON string.
+The following data is a CSV format with the box_id, box_width, box_height and box_depth.
+{boxes}""")
+
+
+class GenerateClpPlanRequest(BaseModel):
+    execution_id:UUID
+    width:float
+    height:float
+    depth:float
+    boxes:List[Box]
+
+class GeneratedClpPlan(BaseModel):
+    plan:List[Clp]
+    left_over_boxes:List[int]
+    remarks:str
 
 class DetetionConfig(BaseModel):
     box_model: str = Field(default="best.pt")

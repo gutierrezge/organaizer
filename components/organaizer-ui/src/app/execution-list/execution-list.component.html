@@ -49,7 +49,7 @@
         </ng-container>
         <ng-container matColumnDef="volume">
             <th mat-header-cell *matHeaderCellDef>Boxes Vol. (cm<sup>3</sup>) </th>
-            <td mat-cell *matCellDef="let element">
+            <td mat-cell *matCellDef="let element" [ngClass]="{'status-error': element.total_volume > (element.container_width*element.container_height*element.container_depth), 'status-done': element.total_volume <= (element.container_width*element.container_height*element.container_depth)}">
               {{ element.total_volume | number:'1.2-2'}}
             </td>
         </ng-container>

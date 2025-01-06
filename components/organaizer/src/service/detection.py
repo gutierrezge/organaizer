@@ -10,7 +10,19 @@ from ultralytics import YOLO, SAM
 from anthropic import Anthropic
 import cv2
 from src import log
-from src.model import Execution, Box, Clp, DetectedBoxResult, DetetionConfig, EstimatedDimensions
+from anthropic.types import MessageParam, TextBlockParam, ImageBlockParam
+from anthropic.types.image_block_param import Source
+from src.model import (
+    Execution,
+    Box,
+    Clp,
+    DetectedBoxResult,
+    DetetionConfig,
+    GenAIConfig,
+    EstimatedDimensions,
+    GenerateClpPlanRequest,
+    GeneratedClpPlan
+)
 from src.dao import ExecutionDAO
 from src.service import MinioService
 
@@ -22,6 +34,7 @@ MAX_RETRY = 5
 class GenAIService:
 
     def __init__(self):
+        self.config = GenAIConfig()
         self.client = Anthropic(
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
@@ -34,25 +47,65 @@ class GenAIService:
         count = 0
         while count < MAX_RETRY:
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=300,
-                messages=[{
-                    "role": "user",
-                    "content": [{
-                        "type": "text",
-                        "text": "Provide the aproximated values for the width, height, depth in centimeters of the box in the image in a JSON format, There is also an aruco of 3.5 by 3.5 centimeters. Do not return anything else but a JSON string. Example json return {\"width\": 20.0, \"height\":5.56, \"depth\":6.7}"
-                    }, {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/jpeg",
-                            "data": self._tobase64_(image)
-                        }
-                    }]
-                }]
+                model=self.config.model,
+                max_tokens=self.config.max_tokens,
+                messages=[
+                    MessageParam(
+                        role="user",
+                        content=[
+                            TextBlockParam(
+                                type="text",
+                                text=self.config.image_instructions
+                            ),
+                            ImageBlockParam(
+                                type="image",
+                                source=Source(
+                                    type="base64",
+                                    media_type="image/jpeg",
+                                    data=self._tobase64_(image)
+                                )
+                            )
+                        ]
+                    )
+                ]
             )
             try:
                 return EstimatedDimensions(**json.loads(response.content[0].text))
+            except:
+                count += 1
+                time.sleep(0.25*2**count)
+        logger.error(f"Failed to parse GENAI Response. {response.content[0].text}", exc_info=True)
+        return None
+    
+    def generate_clp(self, request:GenerateClpPlanRequest) -> Optional[GeneratedClpPlan]:
+        count = 0
+        lines = [','.join([f'{box.id}', f'{box.width:.02f}', f'{box.height:.02f}', f'{box.depth:.02f}']) for box in request.boxes]
+        boxes:str = f"box_id, box_width, box_height, box_depth\n{'\n'.join(lines)}"
+        prompt=self.config.clp_instructions.format(
+            width=request.width,
+            height=request.height,
+            depth=request.depth,
+            boxes=boxes,
+            execution_id=request.execution_id
+        )
+        while count < MAX_RETRY:
+            response = self.client.messages.create(
+                model=self.config.model,
+                max_tokens=self.config.max_tokens,
+                messages=[
+                    MessageParam(
+                        role="user",
+                        content=[
+                            TextBlockParam(
+                                type="text",
+                                text=prompt
+                            )
+                        ]
+                    )
+                ]
+            )
+            try:
+                return GeneratedClpPlan(**json.loads(response.content[0].text))
             except:
                 count += 1
                 time.sleep(0.25*2**count)
@@ -166,6 +219,7 @@ class DetectionProcess(Thread):
     def run(self):
         try:
             boxes: List[Box] = []
+            logger.info(f"Processing images for execution {self.execution.id}")
             for key in self.minio_service.list_files(f"{self.execution.id}/source/"):
                 prediction_image_key = key.replace("source", "prediction")
                 # Get image from storage
@@ -216,23 +270,33 @@ class DetectionProcess(Thread):
                         )
                         boxes.append(box)
             
-            # Generate container loading plan
-            ##################################################################
-            # TODO: REMOVE MOCKED DATA AND GENERATE THE CONTAINER LOADING PLAN
-            ##################################################################
-            plan = [
-                Clp(execution_id=self.execution.id, box_id=1, x=0, y=0, z=0),
-                Clp(execution_id=self.execution.id, box_id=2, x=1, y=0, z=0),
-                Clp(execution_id=self.execution.id, box_id=3, x=2, y=0, z=0),
-            ]
+            self.dao.delete_boxes(self.execution.id)
+            self.dao.delete_plan(self.execution.id)
+            self.dao.update_plan_remarks(self.execution.id, None)
 
             # Save predicted boxes
-            self.dao.delete_boxes(self.execution.id)
+            logger.info(f"Updating boxes for execution {self.execution.id}")
             self.dao.save_boxes(boxes)
+            boxes:List[Box] = self.dao.find_boxes_by_execution_id(self.execution.id)
+            
+            # Generate container loading plan
+            if len(boxes) > 0:
+                logger.info(f"Generating container loading plan")
+                plan:Optional[GeneratedClpPlan] = self.genai.generate_clp(GenerateClpPlanRequest(
+                    execution_id=self.execution.id,
+                    width=self.execution.container_width,
+                    height=self.execution.container_height,
+                    depth=self.execution.container_depth,
+                    boxes=boxes
+                ))
+                logger.info(f"plan={plan}")
 
-            # Save generated plan
-            self.dao.delete_plan(self.execution.id)
-            self.dao.save_plan(plan)
+                # Save generated plan
+                logger.info(f"Updating plan for execution {self.execution.id}")
+                if plan is not None:
+                    self.dao.save_plan(plan.plan)
+                    self.dao.update_plan_remarks(self.execution.id, plan.remarks)
+                    self.execution.plan_remarks = plan.remarks
 
             self.done()
         except Exception as e:

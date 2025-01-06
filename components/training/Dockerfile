@@ -18,7 +18,8 @@ RUN pip3 install --upgrade pip
 RUN pip install jupyter opencv-python pandas numpy matplotlib seaborn scikit-learn ultralytics
 
 # Run jupyter using python enviroment when container starts
-CMD jupyter notebook --allow-root --ip=0.0.0.0
+# CMD jupyter notebook --allow-root --ip=0.0.0.0
 # CMD python3 capture.py
 # CMD python3 calibrate.py
 # CMD python3 detect.py
+CMD python3 runmodel.py

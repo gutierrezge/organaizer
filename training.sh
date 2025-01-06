@@ -1,1 +1,1 @@
-clear && docker system prune -f && docker-compose -f compose.training.yml build && docker-compose -f compose.training.yml up
+clear && docker system prune -f && docker-compose -f compose.training.yml build && xhost + && docker-compose -f compose.training.yml up

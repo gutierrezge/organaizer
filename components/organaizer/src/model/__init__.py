@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+import numpy as np
 from typing import List, Optional, Literal
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -16,6 +17,11 @@ class Clp(BaseModel):
     z: int
     created_on: datetime = Field(default=datetime.now())
     modified_on: datetime = Field(default=datetime.now())
+
+class EstimatedDimensions(BaseModel):
+    width: float
+    height: float
+    depth: float
 
 
 class Box(BaseModel):
@@ -106,16 +112,16 @@ class DownloadImagesResponse(BaseModel):
 
 
 class DetectedBoxResult(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     x1: int
     y1: int
     x2: int
     y2: int
-    confidence: float
-    class_id: int
-    class_name: str
+    mask:Optional[np.ndarray] = None
 
 
 class DetetionConfig(BaseModel):
-    model: str = Field(default="best.pt")
+    box_model: str = Field(default="best.pt")
+    sam_model: str = Field(default="sam2_t.pt")
     confidence_threshold: float = Field(default=0.5)
     iou_threshold: float = Field(default=0.45)

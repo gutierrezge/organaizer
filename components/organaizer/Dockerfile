@@ -18,7 +18,4 @@ RUN pip install poetry
 COPY pyproject.toml poetry.lock ./
 RUN poetry install
 
-# Copy ode
-# COPY . .
-
 CMD ["poetry", "run", "python", "app.py"]

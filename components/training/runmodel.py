@@ -41,7 +41,11 @@ def predict(box_model: YOLO, sam_model: SAM, frame: np.ndarray) -> dict:
         verbose=False,
     )[0]
 
-    if box_results is not None and box_results.boxes is not None and len(box_results.boxes) == 1:
+    if (
+        box_results is not None
+        and box_results.boxes is not None
+        and len(box_results.boxes) == 1
+    ):
         box = box_results.boxes[0]
         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
@@ -49,10 +53,10 @@ def predict(box_model: YOLO, sam_model: SAM, frame: np.ndarray) -> dict:
             frame, bboxes=[((int(x1), int(y1)), (int(x2), int(y2)))], verbose=False
         )
         masks = sam_result[0].masks.data.cpu().numpy()
-        
+
         if len(masks) > 1:
             logging.info(f"masks={len(masks)}")
-        
+
         mask = masks[0] if masks is not None and len(masks) > 0 else None
 
         if mask is not None:
@@ -68,25 +72,20 @@ def predict(box_model: YOLO, sam_model: SAM, frame: np.ndarray) -> dict:
     return None
 
 
-def draw_detections(
-    frame: np.ndarray,
-    det: dict,
-    font_weight: float = 1,
-    box_border_color: tuple[int, int, int] = (0, 255, 0),
-    color: tuple[int, int, int] = (0, 0, 255),
-    alpha: float = 0.5
-) -> np.ndarray:
+def draw_detections(frame: np.ndarray, det: dict) -> np.ndarray:
     if det is not None:
-        cv2.rectangle(
+        frame = cv2.rectangle(
             frame,
             (det["x1"], det["y1"]),
             (det["x2"], det["y2"]),
-            color=box_border_color,
-            thickness=font_weight,
+            color=(0, 255, 0),
+            thickness=1,
         )
-        colored_mask: np.ndarray = np.zeros_like(frame)
-        colored_mask[det["mask"] == 1] = color
-    return cv2.addWeighted(frame, 1, colored_mask, alpha, 0)
+        if det["mask"] is not None:
+            mask = np.zeros_like(frame)
+            mask[det["mask"] == 1] = (0, 0, 255)
+            frame = cv2.addWeighted(frame, 1, mask, 0.5, 0)
+    return frame
 
 
 def main(camera_id=0):
@@ -98,10 +97,10 @@ def main(camera_id=0):
         logging.info("Error: Could not open camera")
         return
 
+    set_reslution(cap, 640, 360, 30)
     logging.info("Press 'q' or 'ESC' to quit")
     try:
-        w, h, fps = set_reslution(cap, 640, 360, 30)
-        box_model = YOLO("./data/runs/organaizer4/weights/best.onnx")
+        box_model = YOLO(".data/runs/train/organaizer4/weights/best.pt")
         sam_model = SAM("sam2_t.pt")
 
         while True:
@@ -118,7 +117,7 @@ def main(camera_id=0):
             if key == ord("q") or key == 27:
                 break
             # Stop the video
-            elif key == ord('s'):
+            elif key == ord("s"):
                 cv2.waitKey(-1)
     finally:
         cap.release()

@@ -167,7 +167,7 @@ class ExecutionDAO:
         with self.db.session() as session:
             return [
                 self._to_execution_(e, session)
-                for e in session.query(ExecutionEntity).all()
+                for e in session.query(ExecutionEntity).order_by(ExecutionEntity.created_on.desc()).all()
             ]
 
     def update(

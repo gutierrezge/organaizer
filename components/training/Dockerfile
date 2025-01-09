@@ -17,9 +17,9 @@ RUN apt install -y git wget curl unzip tar zip libgl1-mesa-glx libglib2.0-0 libs
 RUN pip3 install --upgrade pip
 RUN pip install jupyter opencv-python pandas numpy matplotlib seaborn scikit-learn ultralytics
 RUN pip install onnx onnxruntime-gpu
+RUN pip install py3dbp
 # Run jupyter using python enviroment when container starts
 # CMD jupyter notebook --allow-root --ip=0.0.0.0
 # CMD python3 capture.py
 # CMD python3 calibrate.py
-# CMD python3 detect.py
 CMD python3 runmodel.py

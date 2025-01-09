@@ -51,8 +51,9 @@ def open_camera(camera_id=0):
                     out.write(original)
 
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('s') and checkboard_image:
+            if key == ord('s'):
                 filename:str = f'.data/capture/screenshots/screenshot_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'
+                logging.info(f"Saved image {filename}")
                 cv2.imwrite(filename, original)
             elif key == ord('v'):
                 if out is None:

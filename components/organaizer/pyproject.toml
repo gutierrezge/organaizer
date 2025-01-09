@@ -21,6 +21,7 @@ flask-cors = "^5.0.0"
 ultralytics = "^8.3.55"
 opencv-python = "^4.10.0.84"
 anthropic = "^0.42.0"
+py3dbp = "^1.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"

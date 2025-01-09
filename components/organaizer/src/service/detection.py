@@ -10,6 +10,7 @@ from ultralytics import YOLO, SAM
 from anthropic import Anthropic
 import cv2
 from src import log
+from py3dbp import Packer, Bin, Item
 from anthropic.types import MessageParam, TextBlockParam, ImageBlockParam
 from anthropic.types.image_block_param import Source
 from src.model import (
@@ -71,41 +72,6 @@ class GenAIService:
             )
             try:
                 return EstimatedDimensions(**json.loads(response.content[0].text))
-            except:
-                count += 1
-                time.sleep(0.25*2**count)
-        logger.error(f"Failed to parse GENAI Response. {response.content[0].text}", exc_info=True)
-        return None
-    
-    def generate_clp(self, request:GenerateClpPlanRequest) -> Optional[GeneratedClpPlan]:
-        count = 0
-        lines = [','.join([f'{box.id}', f'{box.width:.02f}', f'{box.height:.02f}', f'{box.depth:.02f}']) for box in request.boxes]
-        boxes:str = f"box_id, box_width, box_height, box_depth\n{'\n'.join(lines)}"
-        prompt=self.config.clp_instructions.format(
-            width=request.width,
-            height=request.height,
-            depth=request.depth,
-            boxes=boxes,
-            execution_id=request.execution_id
-        )
-        while count < MAX_RETRY:
-            response = self.client.messages.create(
-                model=self.config.model,
-                max_tokens=self.config.max_tokens,
-                messages=[
-                    MessageParam(
-                        role="user",
-                        content=[
-                            TextBlockParam(
-                                type="text",
-                                text=prompt
-                            )
-                        ]
-                    )
-                ]
-            )
-            try:
-                return GeneratedClpPlan(**json.loads(response.content[0].text))
             except:
                 count += 1
                 time.sleep(0.25*2**count)
@@ -189,6 +155,49 @@ class YOLOService:
         colored_mask = np.zeros_like(frame)
         colored_mask[mask == 1] = color
         return cv2.addWeighted(frame, 1, colored_mask, alpha, 0)
+    
+    @classmethod
+    def draw_markers(cls, frame):
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+        parameters = cv2.aruco.DetectorParameters()
+        detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+        corners, ids, rejected = detector.detectMarkers(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+
+        # verify *at least* one ArUco marker was detected
+        if len(corners) > 0:
+            # flatten the ArUco IDs list
+            ids = ids.flatten()
+            
+            # loop over the detected ArUCo corners
+            for (markerCorner, markerID) in zip(corners, ids):
+                # extract the marker corners (which are always returned in
+                # top-left, top-right, bottom-right, and bottom-left order)
+                corners = markerCorner.reshape((4, 2))
+                (topLeft, topRight, bottomRight, bottomLeft) = corners
+                
+                # convert each of the (x, y)-coordinate pairs to integers
+                topRight = (int(topRight[0]), int(topRight[1]))
+                bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                topLeft = (int(topLeft[0]), int(topLeft[1]))
+                
+                # draw the bounding box of the ArUCo detection
+                cv2.line(frame, topLeft, topRight, (0, 255, 0), 1, cv2.LINE_AA)
+                cv2.line(frame, topRight, bottomRight, (0, 255, 0), 1, cv2.LINE_AA)
+                cv2.line(frame, bottomRight, bottomLeft, (0, 255, 0), 1, cv2.LINE_AA)
+                cv2.line(frame, bottomLeft, topLeft, (0, 255, 0), 1, cv2.LINE_AA)
+                
+                # compute and draw the center (x, y)-coordinates of the ArUco
+                # marker
+                cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+                cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+                cv2.circle(frame, (cX, cY), 2, (0, 0, 255), -1, cv2.LINE_AA)
+                
+                # draw the ArUco marker ID on the image
+                cv2.putText(frame, str(markerID),
+                    (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (0, 255, 0), 1, cv2.LINE_AA)
+        return frame
 
 
 class DetectionProcess(Thread):
@@ -215,6 +224,22 @@ class DetectionProcess(Thread):
         height, width = img.shape[:2]
         new_height: int = int(target_width / (width / height))
         return cv2.resize(img, (target_width, new_height), interpolation=cv2.INTER_AREA)
+    
+    def generate_clp(self, boxes:List[Box]) -> Bin:
+        packer = Packer()
+        container = Bin(
+            self.execution.id,
+            self.execution.container_width,
+            self.execution.container_height,
+            self.execution.container_depth,
+            1000
+        )
+        packer.add_bin(container)
+        for box in boxes:
+            packer.add_item(Item(box.id, box.width, box.height, box.depth, 0))
+
+        packer.pack()
+        return container
 
     def run(self):
         try:
@@ -260,6 +285,8 @@ class DetectionProcess(Thread):
                         )
                         if detection.mask is not None:
                             image = YOLOService.draw_mask(image, detection.mask)
+                        
+                        image = YOLOService.draw_markers(image)
 
                         # Draw predictions on image and save it
                         _, preditect_image = cv2.imencode(".jpg", image)
@@ -282,13 +309,27 @@ class DetectionProcess(Thread):
             # Generate container loading plan
             if len(boxes) > 0:
                 logger.info(f"Generating container loading plan")
-                plan:Optional[GeneratedClpPlan] = self.genai.generate_clp(GenerateClpPlanRequest(
-                    execution_id=self.execution.id,
-                    width=self.execution.container_width,
-                    height=self.execution.container_height,
-                    depth=self.execution.container_depth,
-                    boxes=boxes
-                ))
+                container:Bin = self.generate_clp(boxes)
+                remarks = "All boxes fitted in the container."
+                if container.unfitted_items is not None and len(container.unfitted_items) > 0:
+                    remarks = f"{len(container.unfitted_items)} boxes did not fit in the container."
+
+                plan = GeneratedClpPlan(
+                    plan=[
+                        Clp(
+                            execution_id=self.execution.id,
+                            box_id=int(i.name),
+                            x=i.position[0],
+                            y=i.position[1],
+                            z=i.position[2]
+                        )
+                        for i in container.items
+                    ],
+                    left_over_boxes=[
+                        int(i.name) for i in container.unfitted_items
+                    ],
+                    remarks=remarks
+                )
                 logger.info(f"plan={plan}")
 
                 # Save generated plan

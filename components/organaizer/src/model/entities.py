@@ -61,9 +61,9 @@ class ClpEntity(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     execution_id = Column(UUID, ForeignKey("execution.id"), nullable=False)
     box_id = Column(Integer, nullable=False)
-    x = Column(Integer, nullable=False)
-    y = Column(Integer, nullable=False)
-    z = Column(Integer, nullable=False)
+    x = Column(Numeric(precision=15, scale=2), nullable=False)
+    y = Column(Numeric(precision=15, scale=2), nullable=False)
+    z = Column(Numeric(precision=15, scale=2), nullable=False)
     created_on = Column(DateTime, nullable=False, default=datetime.now)
     modified_on = Column(
         DateTime, nullable=False, default=datetime.now, onupdate=datetime.now

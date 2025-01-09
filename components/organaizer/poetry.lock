@@ -1962,6 +1962,16 @@ files = [
 ]
 
 [[package]]
+name = "py3dbp"
+version = "1.1.2"
+description = "3D Bin Packing"
+optional = false
+python-versions = "*"
+files = [
+    {file = "py3dbp-1.1.2.tar.gz", hash = "sha256:d8c92c120eecfbee600a4dfd8b0a42d63459c97de67a26ff8ad39529a5125e07"},
+]
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
@@ -2834,4 +2844,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "41e614864b3122ded5ace72cadf75cc2d13b8577dd137574f1327f6e05425bc1"
+content-hash = "67d9e1661a8aaef938a7bfddafac9a8feb7a2e39826bc3fb578ac5887df74592"

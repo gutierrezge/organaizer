@@ -2,20 +2,20 @@ version: '3.8'
 services:
   training:
     build:
-      context: ./components/training
+      context: ./training/
       dockerfile: Dockerfile
     ports:
       - "8888:8888"
     devices:
-      - /dev/video0:/dev/video0
+      - /dev:/dev
     volumes:
-      - ./components/training:/workspace
+      - ./training:/workspace
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - /dev/video0:/dev/video0
+    privileged: true
     environment:
-      - JUPYTER_TOKEN=huAUCRkXiqW3JJW2QuyWjoJPCHY6lTWvkW5c5SbcXdx2hZEeFdQShrVOBK67QXP2
       - NVIDIA_VISIBLE_DEVICES=all
       - DISPLAY=${DISPLAY}
+      - UDEV=1
     deploy:
       resources:
         reservations:

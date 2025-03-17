@@ -1,1 +1,1 @@
-clear && docker system prune -f && docker-compose build && docker-compose up
+clear && docker system prune -f && xhost + && docker-compose build && docker-compose up

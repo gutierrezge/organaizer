@@ -8,18 +8,24 @@ Este proyecto busca identificar las cajas y sus volumenes basado en una imagen y
 - Guillermo Daniel González
 - Lucia Alejandra Moreno Canuto
 
+# Prerequisitos
+Se requiere de al menos python 3.9.20 o superior y docker compose.
+Instalar las dependencies de python en un ambiente de python
+
+```
+python3 -m venv venv
+source venv/bin/activate
+pip install pip -U
+pip install -r requirements.txt
+```
+
 # Entrenamiento
-Para realizar el entrenamiento se puee ejecutr el archivo `./training.sh` el cual creara un contenedor con Jupyter y Ultralytics.
+Para realizar el entrenamiento ejecute el archiv `run.jupyter.sh`
+Una vez iniciado jupyter, abra el notebook `02 YOLO Model Training.ipyn` y siga los pasos.
 
-# Ejecutar el proyecto.
+# Ejecutar la aplicacion.
 Para levantar la aplicacion, se debe ejecutar el archivo `./run.sh`
-Cualquier cambio generado en los archivos se vera reflejado automaticamente.
+Se levantara una base de datos de postgres y un navegador de la base de datos (pgAdmin), esto se hace mediante docker.
 
-# Detener el proyecto o el entrenamiento.
-Si NO se ejecuto en modo `deamon` se puede detener la apliacion utilizando `ctrl+c`
-Si se ejecuto en modo `deamon` se puede deterner ejecutando `./stop.sh`
-
-# URLs de los Servicios
-- Interfaz de usuario: http://localhost:4200/
-- API: http://localhost:5000/health-check
-- Entrenamiento: http://localhost:8888?token=huAUCRkXiqW3JJW2QuyWjoJPCHY6lTWvkW5c5SbcXdx2hZEeFdQShrVOBK67QXP2
+# URLs
+- Entrenamiento: http://localhost:8888?tree

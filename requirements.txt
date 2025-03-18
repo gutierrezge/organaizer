@@ -1,0 +1,6 @@
+jupyter
+pyrealsense2
+scikit-image
+scikit-learn
+python-dotenv
+matplotlib

@@ -1,0 +1,206 @@
+.details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.specs-card {
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.specs-header {
+  display: flex; /* Change from grid to flex */
+  justify-content: space-between; /* Space between ID and buttons */
+  align-items: center; /* Vertically center items */
+  margin-bottom: 1rem;
+}
+
+.specs-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.specs-header-buttons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.close-button {
+  justify-self: end;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Top specs grid */
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+/* Loading Plan grid */
+.plan-card .specs-grid {
+  grid-template-columns: 0.5fr 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Boxes table grid */
+.boxes .specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 1.5fr 0.5fr;
+  gap: 1rem;
+  align-items: center;
+}
+.text-container > .specs-grid,
+.boxes > .specs-grid{
+  padding: 0.25rem 1rem;
+}
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spec-label {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.spec-value {
+  font-size: 1.125rem;
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: 400;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.images-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+}
+
+.image-card, .plan-card {
+  width: 100%;
+  height: 100%;
+}
+
+.text-container {
+  padding: 1rem;
+  text-align: left;
+  height: 100%;
+  overflow-y: auto; /* Add scroll if content is too long */
+  max-height: 400px; /* Limit height to match image size */
+}
+
+mat-card-header {
+  padding: 1rem;
+  text-align: left; /* Added */
+}
+
+mat-card-title {
+  font-size: 1.25rem;
+  margin-bottom: 0;
+  text-align: left; /* Added */
+}
+
+.image-container {
+  width: 100%;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  gap: 1rem;
+}
+
+.loading-text {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1rem;
+}
+
+.predictions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 90px);
+  gap: 1rem;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.prediction-item {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.image-id {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+
+.prediction-item:hover .preview-image {
+  transform: scale(1.1);
+}
+
+.hover-overlay {
+  position: absolute;
+  inset: 0;
+  bottom: 20px; /* Height of the ID bar */
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.3s ease;
+}
+
+.prediction-item:hover .hover-overlay {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.red-text{
+  color: red;
+}
+.green-text{
+  color: green;
+}

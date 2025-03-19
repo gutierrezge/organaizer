@@ -1,0 +1,19 @@
+* {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+  
+
+.image-dialog .mdc-dialog__surface {
+    overflow: visible !important;
+}
+  
+.image-dialog .mat-mdc-dialog-container {
+    overflow: visible !important;
+}

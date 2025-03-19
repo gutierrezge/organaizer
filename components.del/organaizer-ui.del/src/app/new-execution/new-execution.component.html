@@ -1,0 +1,68 @@
+<app-navbar></app-navbar>
+<div class="spinner-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+</div>
+<div class="home">
+    <div class="container">
+        <p class="instructions" [ngClass]="{'alert-error': error}">
+            Upload an image with boxes and enter the container's dimension.
+        </p>
+        <form class="example-form">
+          <div class="example-full-width">
+            <!-- Container dimensions inputs -->
+            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+              <mat-form-field>
+                <mat-label>Container Width (cm)</mat-label>
+                <input matInput name="width" placeholder="100.00" [(ngModel)]="containerWidth"
+                  (keydown)="isNumber($event)">
+              </mat-form-field>
+        
+              <mat-form-field>
+                <mat-label>Container Height (cm)</mat-label>
+                <input matInput name="height" placeholder="50.00" [(ngModel)]="containerHeight"
+                  (keydown)="isNumber($event)">
+              </mat-form-field>
+        
+              <mat-form-field>
+                <mat-label>Container Depth (cm)</mat-label>
+                <input matInput name="depth" placeholder="25.00" [(ngModel)]="containerDepth"
+                  (keydown)="isNumber($event)">
+              </mat-form-field>
+            </div>
+        
+            <!-- Upload container -->
+            <div class="upload-container" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)" (paste)="onPaste($event)" (click)="fileUpload.click()"
+              [class.dragover]="isDragging">
+              <input #fileUpload class="hidden-input" type="file" accept=".png,.jpg,.jpeg,.bmp" multiple
+                (change)="onFilesSelected($event)" />
+              <div class="upload-content">
+                <i class="upload-icon">
+                  <mat-icon fontIcon="image"></mat-icon>
+                </i>
+                <p class="upload-text">Click to upload, Drag & Drop or Paste your image from clipboard</p>
+              </div>
+            </div>
+        
+            <!-- Image previews -->
+            @if (selectedFiles.length > 0) {
+            <div class="image-previews">
+              <div class="preview-item" *ngFor="let selectedFile of selectedFiles">
+                <img [src]="selectedFile.base64Content" [alt]="selectedFile.file.name" />
+                <span class="file-name">{{selectedFile.file.name}}</span>
+                <button mat-mini-fab class="remove-image" (click)="removeFile(selectedFile)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </div>
+            }
+        
+            <!-- Action buttons -->
+            <div style="display: flex; justify-content: space-between; margin-top: 16px;">
+              <a mat-button href="/">Cancel</a>
+              <button mat-button (click)="newExecution()">Save</button>
+            </div>
+          </div>
+        </form>
+    </div>
+</div>

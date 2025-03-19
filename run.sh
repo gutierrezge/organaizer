@@ -1,1 +1,1 @@
-clear && docker system prune -f && docker-compose up --build -d && cd src && streamlit run app2.py
+clear && docker system prune -f && docker-compose up --build -d && cd src && python app.py

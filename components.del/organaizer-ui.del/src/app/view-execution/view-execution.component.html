@@ -1,0 +1,167 @@
+<div class="spinner-container" *ngIf="!execution">
+    <mat-spinner></mat-spinner>
+    <span class="loading-text">Loading...</span>
+</div>
+<div class="details-container" *ngIf="execution">
+    <mat-card class="specs-card">
+        <div class="specs-header">
+            <div><label class="spec-label">{{execution.id}}</label></div>
+            <div class="specs-header-buttons">
+                <a mat-icon-button (click)="redo()" matTooltip="Redo this execution">
+                    <mat-icon fontIcon="redo"></mat-icon>
+                </a>
+                <a mat-icon-button (click)="deleteExecution()" matTooltip="Delete this execution">
+                    <mat-icon fontIcon="delete"></mat-icon>
+                </a>
+                <a mat-icon-button href="/" matTooltip="Close" class="close-button">
+                    <mat-icon fontIcon="close"></mat-icon>
+                </a>
+            </div>
+        </div>
+        <div class="specs-grid">
+            <div class="spec-item">
+                <label class="spec-label">Container Dimensions (cm)</label>
+                <div class="spec-value">
+                    {{execution.container_width | number:'1.2-2'}} <sub>x</sub> 
+                    {{execution.container_height | number:'1.2-2'}} <sub>x</sub> 
+                    {{execution.container_depth | number:'1.2-2'}}
+                </div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Container Volume (cm<sup>3</sup>)</label>
+                <div class="spec-value">
+                    {{execution.container_width*execution.container_height*execution.container_depth | number:'1.2-2'}}
+                </div>
+            </div>
+
+            <div class="spec-item">
+                <label class="spec-label">Boxes</label>
+                <div class="spec-value">{{execution.total_boxes}}</div>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Total Boxes Volume (cm<sup>3</sup>)</label>
+                <div class="spec-value" [ngClass]="{'red-text': execution.total_volume > (execution.container_width*execution.container_height*execution.container_depth)}">{{execution.total_volume | number:'1.2-2'}}</div>
+            </div>
+        </div>
+    </mat-card>
+
+    <div class="images-container">
+        <mat-card class="image-card">
+            <mat-card-header>
+                <mat-card-title>Predictions</mat-card-title>
+            </mat-card-header>
+            <div class="image-container">
+                <div class="predictions-grid">
+                    <ng-container *ngFor="let predited_image of execution.predicted_images; let i = index">
+                        <div class="prediction-item" (click)="openImageDialog(predited_image.url)">
+                            <img [src]="predited_image.url" [alt]="'Prediction ' + (i + 1)" class="preview-image">
+                            <div class="hover-overlay"></div>
+                            <div class="image-id">{{predited_image.id.slice(-12)}}</div>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
+        </mat-card>
+        <mat-card class="plan-card">
+            <mat-card-header>
+                <mat-card-title>Loading Plan</mat-card-title>
+            </mat-card-header>
+            <div class="text-container">
+                <div class="specs-grid">
+                    <div class="spec-item">
+                        <label class="spec-label">Box ID</label>
+                    </div>
+                    <div class="spec-item">
+                        <label class="spec-label">Position X</label>
+                    </div>
+                    <div class="spec-item">
+                        <label class="spec-label">Position Y</label>
+                    </div>
+                    <div class="spec-item">
+                        <label class="spec-label">Position Z</label>
+                    </div>
+                </div>
+                <div class="specs-grid" *ngFor="let p of execution.plan">
+                    <div class="spec-item">
+                        <div class="spec-value">{{ p.box_id}}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{p.x}}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{p.y}}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{p.z}}</div>
+                    </div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">Remarks: {{execution.plan_remarks}}</div>
+                </div>
+            </div>
+        </mat-card>
+    </div>
+
+    <mat-card class="plan-card boxes">
+        <mat-card-header>
+            <mat-card-title>Predicted Boxes</mat-card-title>
+        </mat-card-header>
+        <div class="specs-grid">
+            <div class="spec-item">
+                <label class="spec-label">Image ID</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Box ID</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Est. Width (cm)</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Est. Height (cm)</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Est. Depth (cm)</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Est. Volume (cm<sup>3</sup>)</label>
+            </div>
+            <div class="spec-item">
+                <label class="spec-label">Fit in Container</label>
+            </div>
+        </div>
+        <ng-container *ngFor="let predicted_image of execution.predicted_images">
+            <ng-container *ngFor="let box of predicted_image.boxes">
+                <div class="specs-grid">
+                    <div class="spec-item">
+                        <div class="spec-value">{{ predicted_image.id.slice(-12) }}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{ box.id}}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{ box.width | number:'1.2-2' }} </div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{ box.height | number:'1.2-2' }} </div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{ box.depth | number:'1.2-2' }}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">{{ box.volume | number:'1.2-2' }}</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">
+                            @if (!box.inplan) {
+                                <mat-icon fontIcon="close" class="red-text"></mat-icon>
+                            } @else {
+                                <mat-icon fontIcon="check" class="green-text"></mat-icon>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+        </ng-container>
+    </mat-card>
+</div>

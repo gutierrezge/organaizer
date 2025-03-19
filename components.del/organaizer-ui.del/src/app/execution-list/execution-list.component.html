@@ -1,0 +1,88 @@
+<app-navbar></app-navbar>
+<div class="spinner-container" *ngIf="isLoading">
+  <mat-spinner></mat-spinner>
+  <span class="loading-text">Loading...</span>
+</div>
+<div class="home">
+  <div class="container">
+    <div class="container-button">
+      <h2>Executions</h2>
+      <div class="button-group">
+        <button mat-button disabled matTooltip="Refresh" (click)="loadExecutions()"><mat-icon>refresh</mat-icon>Data refreshed every 5 seconds.</button>
+        <a mat-button href="new" matTooltip="Create new execution"><mat-icon>add</mat-icon>New</a>
+      </div>
+    </div>
+
+    <div class="container-table">
+      <mat-form-field>
+        <mat-label>Filter</mat-label>
+        <input matInput (keyup)="applyFilter($event)" placeholder="Ex. ium" #input />
+      </mat-form-field>
+
+      <table mat-table
+        [dataSource]="datasource"
+        class="grid-table"
+        matSort
+        matSortActive="created"
+        matSortDisableClear
+        matSortDirection="desc"
+        class="mat-elevation-z8"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> Execution ID </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.id }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="container">
+            <th mat-header-cell *matHeaderCellDef>Container Capacity (cm<sup>3</sup>) </th>
+            <td mat-cell *matCellDef="let element" >
+              {{ element.container_width*element.container_height*element.container_depth | number:'1.2-2' }}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="boxes">
+            <th mat-header-cell *matHeaderCellDef>Total Boxes</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.total_boxes }}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="volume">
+            <th mat-header-cell *matHeaderCellDef>Boxes Vol. (cm<sup>3</sup>) </th>
+            <td mat-cell *matCellDef="let element" [ngClass]="{'status-error': element.total_volume > (element.container_width*element.container_height*element.container_depth), 'status-done': element.total_volume <= (element.container_width*element.container_height*element.container_depth)}">
+              {{ element.total_volume | number:'1.2-2'}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let element" [ngClass]="{'status-processing': element.status == 'PROCESSING', 'status-done': element.status == 'DONE', 'status-error': element.status == 'ERROR'}">
+              {{ element.status }}
+            </td>
+        </ng-container>
+
+        <ng-container matColumnDef="created">
+          <th mat-header-cell *matHeaderCellDef> Created Date</th>
+          <td mat-cell *matCellDef="let element"> {{ element.created_on | date:'yyyy-MM-dd HH:mm:ss'}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Actions </th>
+          <td mat-cell *matCellDef="let element" >
+            <a mat-icon-button (click)="redo(element)" matTooltip="Redo this execution">
+              <mat-icon fontIcon="redo"></mat-icon>
+            </a>
+            <a mat-icon-button (click)="deleteExecution(element)" matTooltip="Delete this execution">
+              <mat-icon fontIcon="delete"></mat-icon>
+            </a>
+            <a mat-icon-button [disabled]="element.status !== 'DONE'" [routerLink]="['/view', element.id]" matTooltip="View Loading Plan">
+              <mat-icon fontIcon="view_in_ar"></mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,98 @@
+.home {
+    margin-top: 2vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 95vw;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.container-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
+mat-header-row{
+    font-weight: bold;
+}
+
+.mat-column-id {
+    width: 25%;
+    height: 40px;
+}
+.mat-column-container {
+    width: 15%;
+    text-align: center;
+    height: 40px;
+}
+.mat-column-boxes {
+    width: 10%;
+    text-align: center;
+    height: 40px;
+}
+.mat-column-volume {
+    width: 10%;
+    text-align: center;
+    height: 40px;
+}
+.mat-column-status{
+    width: 10%;
+    text-align: center;
+    height: 40px;
+}
+.mat-column-actions{
+    width: 10%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+      
+    button {
+        margin: 0 4px;
+    }
+}
+.mat-column-created {
+    width: 20%;
+    text-align: center;
+    height: 40px;
+}
+.mat-mdc-form-field {
+    margin-top: 1vh;
+    font-size: 14px;
+    width: 100%;
+}
+.status-processing {
+    color: rgb(189, 189, 0) !important;
+}
+.status-done {
+    color: rgb(15, 100, 15) !important;
+}
+.status-error {
+    color: rgb(185, 16, 16) !important;
+}
+
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    gap: 1rem;
+  }
+  
+  .loading-text {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+  }

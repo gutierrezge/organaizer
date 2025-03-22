@@ -13,28 +13,30 @@ from ultralytics import YOLO, SAM
 import numpy as np
 from scipy.spatial import ConvexHull
 from itertools import combinations
-from camera import CameraConfig
+from config import Config
 from detection.volume import DimensionsEstimator, DistanceEstimator
-from detection.models import Prediction, IdentifiedCornersPoints, Dimensions, sort_values
+from domain import Prediction, IdentifiedCornersPoints, Dimensions
 import pyrealsense2 as rs
+import utils
+import plot
 from log import logging
 
 class BoxDetection:
 
 
-    def __init__(self, box_model_file:str, sam_model_file:str, config:CameraConfig):
-        self.box_model_file = box_model_file
-        self.sam_model_file = sam_model_file
+    def __init__(self, config:Config):
         self.config = config
+        self.box_model_file = config.detection.box_model
+        self.sam_model_file = config.detection.sam_model
+        
 
     
     def init(self, depth_intrinsics:rs.intrinsics):
         self.box_model = YOLO(self.box_model_file)
         self.sam_model = SAM(self.sam_model_file)
-        self.distance_estimator = DistanceEstimator(depth_intrinsics, self.config.distance_factor)
-        self.estimator = DimensionsEstimator(self.distance_estimator)
+        self.estimator = DimensionsEstimator(DistanceEstimator(depth_intrinsics, self.config))
 
-
+    
     def __get_bbox_from_mask__(self, mask: np.ndarray, default_bbox:np.ndarray) -> np.ndarray:
         try:
             y_indices, x_indices = np.where(mask)
@@ -50,7 +52,7 @@ class BoxDetection:
 
 
     def __select_best_points__(self, corners:Optional[np.ndarray]) -> Optional[np.ndarray]:
-        corners:Optional[np.ndarray] = sort_values(corners)
+        corners:Optional[np.ndarray] = utils.sort_values(corners)
 
         if corners is None or len(corners) < 6:
             return None
@@ -123,8 +125,8 @@ class BoxDetection:
 
         q1, q3 = np.percentile(object_depth_values, [25, 75])
         iqr = q3 - q1
-        lower_bound = q1 - self.config.sigma * iqr
-        upper_bound = q3 + self.config.sigma * iqr
+        lower_bound = q1 - self.config.detection.mask_optimization_sigma * iqr
+        upper_bound = q3 + self.config.detection.mask_optimization_sigma * iqr
 
         return (mask & (depth_frame >= lower_bound) & (depth_frame <= upper_bound))
 
@@ -137,8 +139,8 @@ class BoxDetection:
         
         box_results = self.box_model.predict(
             source=frame,
-            conf=0.5,
-            iou=0.5,
+            conf=self.config.detection.confidence,
+            iou=self.config.detection.iou,
             max_det=1,
             verbose=False,
         )[0]
@@ -149,21 +151,29 @@ class BoxDetection:
             and len(box_results.boxes) == 1
         ):
             bbox = np.int32(box_results.boxes[0].xyxy[0].tolist())
+            bbox_area = (bbox[2]-bbox[0])*(bbox[3]-bbox[1])
+            frame_area = frame.shape[0]*frame.shape[1]
+            bbox_pct = bbox_area/ frame_area
             
-            sam_result = self.sam_model(
-                frame, bboxes=[bbox], verbose=False
-            )
-            
-            if sam_result is not None and len(sam_result) > 0:
-                mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
-                mask = self.optimize_mask(mask, depth_frame)
-                bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
-                corners:Optional[IdentifiedCornersPoints] = self.__detect_corners__(mask)
-                dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
-            
+            # Ensure we are not getting a weird detection taking almos the whole screen
+            if bbox_pct < 0.7:
+                sam_result = self.sam_model(
+                    frame, bboxes=[bbox], verbose=False
+                )
+                
+                if sam_result is not None and len(sam_result) > 0:
+                    mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
+                    mask = self.optimize_mask(mask, depth_frame)
+                    bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
+                    corners:Optional[IdentifiedCornersPoints] = self.__detect_corners__(mask)
+                    dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
+            else:
+                bbox = None
+        
         return Prediction(
             id=uuid4(),
             frame=frame,
+            painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, corners),
             bbox=bbox,
             mask=mask,
             corners=corners,

@@ -7,8 +7,6 @@ python-dotenv
 matplotlib
 kivy
 kivymd
-sqlalchemy
-psycopg2-binary
 pydantic
 ultralytics
 py3dbp

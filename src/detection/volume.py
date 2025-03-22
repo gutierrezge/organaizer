@@ -7,7 +7,7 @@
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
 from typing import Optional
-from detection.models import Dimensions, IdentifiedCornersPoints
+from domain import Dimensions, IdentifiedCornersPoints
 from detection.distance import DistanceEstimator
 import numpy as np
 import pyrealsense2 as rs
@@ -31,7 +31,6 @@ class DimensionsEstimator:
             
             return Dimensions(width=width, height=height, depth=depth)
         except:
-            logging.error("Failed to do dimensions. ", exc_info=True)
             return None
 
 
@@ -57,7 +56,6 @@ class DimensionsEstimator:
         back_width = self.distance_estimator.distance(depth_frame, highest_point, second_highest_point)
         
         width = max(front_width, back_width)
-        logging.info(f"{highest_point} to {second_lowest_point} = {width:.02f} (width)")
         return float(width)
 
 
@@ -87,7 +85,6 @@ class DimensionsEstimator:
         left_height = self.distance_estimator.distance(depth_frame, side2[0], side2[1])
         
         height = max(right_height, left_height)
-        logging.info(f"{side2[0]} to {side2[1]} = {height:.02f} (height)")
         return float(height)
 
 
@@ -111,5 +108,4 @@ class DimensionsEstimator:
         right_depth = self.distance_estimator.distance(depth_frame, lowest_point_f, lowest_point_b)
         left_depth2 = self.distance_estimator.distance(depth_frame, highest_point_f, highest_point_b)
         depth = max(right_depth, left_depth2 )
-        logging.info(f"{highest_point_f} to {highest_point_b} = {depth:.02f} (depth)")
         return float(depth)

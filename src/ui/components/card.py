@@ -17,17 +17,18 @@ from kivy.uix.image import Image
 from kivymd.uix.card import MDCard
 from kivymd.uix.button import MDIconButton
 from kivy.metrics import dp
-from detection.models import Prediction
-from log import logging
+import numpy as np
+from domain import Box
+
 
 class HoverImageCard(MDCard):
 
-    def __init__(self, prediction:Prediction, on_delete_callback, **kwargs):
+    def __init__(self, box:Box, frame:np.ndarray, on_delete_callback, **kwargs):
         super().__init__(**kwargs)
-        self.prediction = prediction
+        self.box = box
         self.on_delete_callback = on_delete_callback
         divider = 2
-        size = (int(prediction.size[0]/divider), int(prediction.size[1]/divider))
+        size = (int(frame.shape[1]/divider), int(frame.shape[0]/divider))
         self.size_hint = (None, None)
         self.size = size
         self.radius = [5]
@@ -41,19 +42,17 @@ class HoverImageCard(MDCard):
         # Add Image
         img = Image(
             source="placeholder.jpg",
-            allow_stretch=True,
-            keep_ratio=True,
             pos_hint={'center_x': 0.5, 'center_y': 0.5},
             size=size
         )
         
-        texture = Texture.create(size=prediction.size, colorfmt='bgr')
-        texture.blit_buffer(prediction.painted_frame.tobytes(), colorfmt='bgr', bufferfmt='ubyte')
+        texture = Texture.create(size=[frame.shape[1], frame.shape[0]], colorfmt='bgr')
+        texture.blit_buffer(frame.tobytes(), colorfmt='bgr', bufferfmt='ubyte')
         texture.flip_vertical()
         img.texture = texture
         layout.add_widget(img)
         layout.add_widget(Label(
-            text=prediction.short_id,
+            text=box.short_id,
             color = (0,0,0,1),
             pos_hint={'center_x': 0.5, 'center_y': 0}
         ))
@@ -70,4 +69,4 @@ class HoverImageCard(MDCard):
 
 
     def on_delete(self, *args):
-        self.on_delete_callback(self.prediction)
+        self.on_delete_callback(self.box)

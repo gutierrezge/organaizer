@@ -6,36 +6,25 @@
 #
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
-from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
-from kivy.lang import Builder
-from ui.screens.home import HomeScreen
-from ui.screens.execution import ExecutionScreen, ExecutionScreen_KV
 from kivy.core.window import Window
-from dao import ExecutionDAO
-from log import logging
-
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager
+from ui.screens.execution import ExecutionScreen, ExecutionScreen_KV
 
 class ExecutionApp(MDApp):
     def build(self):
-        Window.size = (1280, 720)
+        Window.maximize()
         self.title = "Organaizer"
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.theme_style = "Light"
-        self.dao = ExecutionDAO()
-
+        
         Builder.load_string(ExecutionScreen_KV)
         self.screen_manager = ScreenManager()
-        self.home_screen = HomeScreen(self.dao, name="home")
-        self.execution_screen = ExecutionScreen(self.dao, name="execution")
-
-        self.screen_manager.add_widget(self.home_screen)        
-        self.screen_manager.add_widget(self.execution_screen)
+        self.screen_manager.add_widget(ExecutionScreen(name="execution"))
 
         return self.screen_manager
 
-
-    
 
 if __name__ == "__main__":
     ExecutionApp().run()

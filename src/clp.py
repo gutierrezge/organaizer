@@ -7,27 +7,24 @@
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
 
-from uuid import uuid4
-from typing import List
 from py3dbp import Packer, Bin, Item
-from detection.models import Prediction, GeneratedClpPlan, Clp
+from domain import Execution, GeneratedClpPlan, ClpItem
 
 
 class ClpPlanGenerator:
 
-    def generate(self, width:float, height:float, depth:float, predictions:List[Prediction]) -> GeneratedClpPlan:
-        plan_id = uuid4()
+    def generate(self, execution:Execution) -> GeneratedClpPlan:
         packer = Packer()
         container = Bin(
-            plan_id,
-            width,
-            height,
-            depth,
+            execution.id,
+            execution.container_width,
+            execution.container_height,
+            execution.container_depth,
             1000
         )
         packer.add_bin(container)
-        for pred in predictions:
-            packer.add_item(Item(pred.id, pred.dimensions.width, pred.dimensions.height, pred.dimensions.depth, 0))
+        for box in execution.boxes:
+            packer.add_item(Item(box.id, box.width, box.height, box.depth, 0))
 
         packer.pack()
 
@@ -37,8 +34,7 @@ class ClpPlanGenerator:
 
         return GeneratedClpPlan(
             plan=[
-                Clp(
-                    execution_id=plan_id,
+                ClpItem(
                     box_id=i.name,
                     x=i.position[0],
                     y=i.position[1],

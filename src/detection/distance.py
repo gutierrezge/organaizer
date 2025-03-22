@@ -7,14 +7,14 @@
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
 import numpy as np
+from config import Config
 import pyrealsense2 as rs
-from log import logging
 
 class DistanceEstimator:
 
-    def __init__(self, depth_intrinsics:rs.intrinsics, factor:float):
+    def __init__(self, depth_intrinsics:rs.intrinsics, config:Config):
         self.depth_intrinsics:rs.intrinsics = depth_intrinsics
-        self.factor = factor
+        self.config = config
 
 
     def distance(
@@ -29,4 +29,4 @@ class DistanceEstimator:
         point1_3d = rs.rs2_deproject_pixel_to_point(self.depth_intrinsics, p1, depth1)
         point2_3d = rs.rs2_deproject_pixel_to_point(self.depth_intrinsics, p2, depth2)
         
-        return np.linalg.norm(np.array(point1_3d) - np.array(point2_3d)) * 1/10 * self.factor
+        return np.linalg.norm(np.array(point1_3d) - np.array(point2_3d)) * self.config.distance.to_centimeter * self.config.distance.distance_factor

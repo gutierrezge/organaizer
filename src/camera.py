@@ -12,29 +12,25 @@ import cv2
 import numpy as np
 import pyrealsense2 as rs
 from typing import Optional
-from . import CameraConfig
+from config import CameraConfig
 from detection.box import BoxDetection
-from detection.models import Prediction
+from domain import Prediction
 from log import logging
 from collections import deque
-
+from config import Config
 
 class DepthCamera:
 
 
-    def __init__(self):
-        self.config:CameraConfig = CameraConfig()
-        self.detection = BoxDetection(
-            self.config.box_model,
-            self.config.sam_model,
-            self.config
-        )
+    def __init__(self, config:Config):
+        self.config:Config = config
+        self.detection = BoxDetection(config)
         self.pipeline = None
         self.depth_intrinsics = None
         self.distance_estimator = None
         self.align = None
         self.running = False
-        self.depth_matrices = deque(maxlen=self.config.frame_buffer)
+        self.depth_matrices = deque(maxlen=self.config.camera.frame_buffer)
 
 
     def open_camera(self):
@@ -44,8 +40,8 @@ class DepthCamera:
                 
                 config = rs.config()
                 config.disable_all_streams()
-                config.enable_stream(rs.stream.depth, self.config.resolution[0], self.config.resolution[1], rs.format.z16, self.config.fps)
-                config.enable_stream(rs.stream.color, self.config.resolution[0], self.config.resolution[1], rs.format.bgr8, self.config.fps)
+                config.enable_stream(rs.stream.depth, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.z16, self.config.camera.fps)
+                config.enable_stream(rs.stream.color, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.bgr8, self.config.camera.fps)
                 
                 pipeline_profile = self.pipeline.start(config)
                 self.align = rs.align(rs.stream.color)

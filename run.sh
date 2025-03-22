@@ -1,1 +1,1 @@
-clear && docker system prune -f && docker-compose up --build -d && cd src && python app.py
+clear && cd src && python app.py

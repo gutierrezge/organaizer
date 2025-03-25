@@ -156,7 +156,7 @@ class BoxDetection:
             bbox_pct = bbox_area/ frame_area
             
             # Ensure we are not getting a weird detection taking almos the whole screen
-            if bbox_pct < 0.7:
+            if bbox_pct < 0.5:
                 sam_result = self.sam_model(
                     frame, bboxes=[bbox], verbose=False
                 )

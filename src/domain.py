@@ -181,3 +181,8 @@ class Prediction(BaseModel):
     @cached_property
     def short_id(self) -> str:
         return str(self.id)[-12:]
+    
+    def is_complete(self) -> bool:
+        return self.frame is not None and self.bbox is not None and self.painted_frame is not None \
+            and self.mask is not None and self.corners is not None and self.dimensions is not None
+    

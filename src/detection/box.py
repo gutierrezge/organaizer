@@ -126,50 +126,54 @@ class BoxDetection:
 
 
     def predict(self, frame: np.ndarray, depth_frame:np.ndarray) -> Prediction:
-        bbox:Optional[np.ndarray] = None
-        mask:Optional[np.ndarray] = None
-        corners:Optional[np.ndarray] = None
-        dimensions:Optional[Dimensions] = None
-        
         box_results = self.box_model.predict(
             source=frame,
             conf=self.config.detection.confidence,
             iou=self.config.detection.iou,
-            max_det=1,
+            max_det=100,
             verbose=False,
-        )[0]
-
-        if (
-            box_results is not None
-            and box_results.boxes is not None
-            and len(box_results.boxes) == 1
-        ):
-            bbox = np.int32(box_results.boxes[0].xyxy[0].tolist())
-            bbox_area = (bbox[2]-bbox[0])*(bbox[3]-bbox[1])
-            frame_area = frame.shape[0]*frame.shape[1]
-            bbox_pct = bbox_area/ frame_area
-            
-            # Ensure we are not getting a weird detection taking almos the whole screen
-            if bbox_pct < 0.5:
-                sam_result = self.sam_model(
-                    frame, bboxes=[bbox], verbose=False
-                )
-                
-                if sam_result is not None and len(sam_result) > 0:
-                    mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
-                    bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
-                    corners:Optional[np.ndarray] = self.__detect_corners__(mask)
-                    if corners is not None:
-                        dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
-            else:
-                bbox = None
+        )
         
+        for box_result in box_results:
+        
+            if box_result and box_result.boxes and len(box_result.boxes) > 0:
+                for box in box_result.boxes:
+                    bbox = np.int32(box.xyxy[0].tolist())
+                    bbox_area = (bbox[2]-bbox[0])*(bbox[3]-bbox[1])
+                    frame_area = frame.shape[0]*frame.shape[1]
+                    bbox_pct = bbox_area/ frame_area
+                    
+                    # Ensure we are not getting a weird detection taking almos the whole screen
+                    if bbox_pct > 0.05 and bbox_pct < 0.6:
+                        sam_result = self.sam_model(
+                            frame, bboxes=[bbox], verbose=False
+                        )
+                        
+                        if sam_result is not None and len(sam_result) > 0:
+                            mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
+                            bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
+                            corners:Optional[np.ndarray] = self.__detect_corners__(mask)
+                            if corners is not None:
+                                dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
+                                return Prediction(
+                                    id=uuid4(),
+                                    frame=frame,
+                                    painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, dimensions),
+                                    bbox=bbox,
+                                    mask=mask,
+                                    corners=corners,
+                                    dimensions=dimensions
+                                )
+                            else:
+                                continue
+                        else:
+                            continue
+                    else:
+                        continue
         return Prediction(
             id=uuid4(),
             frame=frame,
-            painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, dimensions),
-            bbox=bbox,
-            mask=mask,
-            corners=corners,
-            dimensions=dimensions
+            painted_frame=plot.plot_prediction(frame.copy())
         )
+            
+            

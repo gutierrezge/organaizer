@@ -1,5 +1,7 @@
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
+from kivy.uix.image import Image
 from typing import Callable
 from kivy.properties import StringProperty, NumericProperty, ObjectProperty
 
@@ -12,6 +14,11 @@ KV = '''
     height: dp(64)
     spacing: dp(10)
     padding: dp(5)
+
+    Button:
+        text: "View"
+        size_hint_x: 0.1
+        on_release: root.open_popup()
 
     Image:
         texture: root.frame_texture
@@ -81,6 +88,12 @@ KV = '''
         padding: dp(5)
 
         Label:
+            text: "[b]View[/b]"
+            markup: True
+            size_hint_x: 0.1
+            color: 0, 0, 0, 1
+
+        Label:
             text: "[b]Image[/b]"
             markup: True
             size_hint_x: 0.1
@@ -93,19 +106,19 @@ KV = '''
             color: 0, 0, 0, 1
 
         Label:
-            text: "[b]Width[/b]"
+            text: "[b]Side 1[/b]"
             markup: True
             size_hint_x: 0.1
             color: 0, 0, 0, 1
 
         Label:
-            text: "[b]Height[/b]"
+            text: "[b]Side 2[/b]"
             markup: True
             size_hint_x: 0.1
             color: 0, 0, 0, 1
 
         Label:
-            text: "[b]Depth[/b]"
+            text: "[b]Side 3[/b]"
             markup: True
             size_hint_x: 0.1
             color: 0, 0, 0, 1
@@ -144,6 +157,15 @@ class BoxRow(BoxLayout):
     box_depth = StringProperty()
     box_volume = StringProperty()
     frame_texture = ObjectProperty()
+
+    def open_popup(self):
+        popup = Popup(
+            title=f"Box Image - ID: {self.box_id}",
+            content=Image(texture=self.frame_texture),
+            size_hint=(0.5, 0.5),
+        )
+        popup.open()
+
 
 
 class BoxTable(BoxLayout):

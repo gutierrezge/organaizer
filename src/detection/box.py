@@ -15,7 +15,7 @@ from scipy.spatial import ConvexHull
 from itertools import combinations
 from config import Config
 from detection.volume import DimensionsEstimator, DistanceEstimator
-from domain import Prediction, IdentifiedCornersPoints, Dimensions
+from domain import Prediction, Dimensions
 import pyrealsense2 as rs
 import utils
 import plot
@@ -51,15 +51,14 @@ class BoxDetection:
             return default_bbox
 
 
-    def __select_best_points__(self, corners:Optional[np.ndarray]) -> Optional[np.ndarray]:
-        corners:Optional[np.ndarray] = utils.sort_values(corners)
-
+    def __select_best_points__(self, corners: Optional[np.ndarray]) -> Optional[np.ndarray]:
+        corners = utils.sort_values(corners)
         if corners is None or len(corners) < 6:
             return None
-        
+
         if len(corners) == 6:
             return corners
-        
+
         def are_points_collinear(points):
             for i in range(2, len(points)):
                 area = np.linalg.det(np.array([
@@ -74,51 +73,47 @@ class BoxDetection:
         def convex_hull_area(points_subset) -> float:
             if len(points_subset) < 3 or points_subset.shape[1] != 2 or are_points_collinear(points_subset):
                 return 0
-            
             return ConvexHull(points_subset).volume
 
-        max_area:float = 0
-        best_points:Optional[np.ndarray] = None
+        max_area = 0
+        best_points = None
 
         for subset in combinations(corners, 6):
-            subset:np.ndarray = np.array(subset)
-            area:float = convex_hull_area(subset)
+            subset = np.array(subset)
+            area = convex_hull_area(subset)
             if area > max_area:
-                max_area:float = area
-                best_points:Optional[np.ndarray] = subset
+                max_area = area
+                best_points = subset
 
-        if best_points is None or len(best_points) != 6:
-            return None
-
-        return best_points
+        return best_points if best_points is not None and len(best_points) == 6 else None
     
 
-    def __detect_corners__(self, mask: np.ndarray) -> Optional[IdentifiedCornersPoints]:
-        binary_image:np.ndarray = mask.astype(np.uint8) * 255
+    def __detect_corners__(self, mask: np.ndarray) -> Optional[np.ndarray]:
+        binary_image = (mask.astype(np.uint8)) * 255
         contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        
+
         if not contours:
             return None
-        
-        contour:np.ndarray = max(contours, key=cv2.contourArea)
-        factor:float = 0.001
-        best_result:np.ndarray = None
-        for i in range(100):
-            factor:float = factor + 0.001
-            epsilon:float = cv2.arcLength(contour, True)*factor
-            corners:np.ndarray = np.int32(cv2.approxPolyDP(contour, epsilon, True))
-            
+
+        contour = max(contours, key=cv2.contourArea)
+        best_result = None
+        factor = 0.001
+
+        for _ in range(100):
+            factor += 0.001
+            epsilon = cv2.arcLength(contour, True) * factor
+            corners = cv2.approxPolyDP(contour, epsilon, True)
+
+            corners = corners.reshape(-1, 2)
             if best_result is None:
-                best_result:np.ndarray = corners
-            
+                best_result = corners
             elif len(corners) < len(best_result) and len(corners) >= 6:
-                    best_result:np.ndarray = corners
-            
+                best_result = corners
+
             if len(best_result) == 6:
                 break
-        
-        best_result = self.__select_best_points__(best_result)
-        return IdentifiedCornersPoints.build(best_result) if best_result is not None else None
+
+        return self.__select_best_points__(best_result)
     
     def optimize_mask(self, mask: np.ndarray, depth_frame:np.ndarray) -> np.ndarray:
         object_depth_values = depth_frame[mask]
@@ -134,7 +129,7 @@ class BoxDetection:
     def predict(self, frame: np.ndarray, depth_frame:np.ndarray) -> Prediction:
         bbox:Optional[np.ndarray] = None
         mask:Optional[np.ndarray] = None
-        corners:Optional[IdentifiedCornersPoints] = None
+        corners:Optional[np.ndarray] = None
         dimensions:Optional[Dimensions] = None
         
         box_results = self.box_model.predict(
@@ -163,17 +158,18 @@ class BoxDetection:
                 
                 if sam_result is not None and len(sam_result) > 0:
                     mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
-                    mask = self.optimize_mask(mask, depth_frame)
+                    # mask = self.optimize_mask(mask, depth_frame)
                     bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
-                    corners:Optional[IdentifiedCornersPoints] = self.__detect_corners__(mask)
-                    dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
+                    corners:Optional[np.ndarray] = self.__detect_corners__(mask)
+                    if corners is not None:
+                        dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
             else:
                 bbox = None
         
         return Prediction(
             id=uuid4(),
             frame=frame,
-            painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, corners),
+            painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, dimensions),
             bbox=bbox,
             mask=mask,
             corners=corners,

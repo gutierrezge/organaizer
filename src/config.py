@@ -16,7 +16,7 @@ class DistanceConfig(BaseModel):
 
 
 class DetectionConfig(BaseModel):
-    confidence:float=Field(default=0.5)
+    confidence:float=Field(default=0.1)
     iou:float=Field(default=0.1)
     box_model:str = Field(default="../training/best.pt")
     sam_model:str = Field(default="../training/sam2_t.pt")

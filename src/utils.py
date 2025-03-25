@@ -12,16 +12,21 @@ import numpy as np
 
 
 def sort_values(corners:Optional[np.ndarray]) -> Optional[np.ndarray]:
-    """Sorts an array of points clock-wise"""
-    if corners is None or len(corners) <= 0:
+    """Sorts an array of 2D points clockwise and ensures output shape (6, 2)"""
+    if corners is None or len(corners) < 6:
         return None
-    corners = np.unique(corners, axis=0)
-    corners = corners.reshape(-1, 2)    
+
+    corners = np.unique(corners.reshape(-1, 2), axis=0)
+    if len(corners) < 6:
+        return None
+
     center = np.mean(corners, axis=0)
     angles = np.arctan2(corners[:, 1] - center[1], corners[:, 0] - center[0])
     sorted_indices = np.argsort(angles)
     corners = corners[sorted_indices]
+
     distances = np.linalg.norm(corners, axis=1)
     top_left_idx = np.argmin(distances)
-    corners = np.roll(corners, -top_left_idx, axis=0)    
-    return corners.reshape(-1, 1, 2)
+    corners = np.roll(corners, -top_left_idx, axis=0)
+
+    return corners[:6] 

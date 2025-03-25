@@ -255,9 +255,9 @@ class ExecutionScreen(Screen):
                 y1=self.latest_prediction.bbox[1],
                 x2=self.latest_prediction.bbox[2],
                 y2=self.latest_prediction.bbox[3],
-                width=self.latest_prediction.dimensions.width,
-                height=self.latest_prediction.dimensions.height,
-                depth=self.latest_prediction.dimensions.depth
+                width=self.latest_prediction.dimensions.side3.value,
+                height=self.latest_prediction.dimensions.side4.value,
+                depth=self.latest_prediction.dimensions.side5.value
             )
             self.execution.boxes.append(box)
             self.update_gallery()

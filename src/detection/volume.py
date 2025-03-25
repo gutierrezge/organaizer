@@ -6,8 +6,8 @@
 #
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
-from typing import Optional
-from domain import Dimensions, IdentifiedCornersPoints
+from typing import Optional, List
+from domain import Dimensions, DimSide
 from detection.distance import DistanceEstimator
 import numpy as np
 import pyrealsense2 as rs
@@ -20,92 +20,15 @@ class DimensionsEstimator:
         self.distance_estimator = distance_estimator
 
 
-    def calculate_object_dimensions(self, depth_frame:np.ndarray, corners:Optional[IdentifiedCornersPoints]) -> Optional[Dimensions]:
-        if corners is None:
-            return None
+    def calculate_object_dimensions(self, depth_frame:np.ndarray, corners:np.ndarray) -> Dimensions:
         
-        try:
-            width = self.__calculate_width__(depth_frame, corners.front, corners.back)
-            height = self.__calculate_height__(depth_frame, corners.front, corners.back)
-            depth = self.__calculate_depth__(depth_frame, corners.front, corners.back)
-            
-            return Dimensions(width=width, height=height, depth=depth)
-        except:
-            return None
-
-
-    def __calculate_width__(
-        self,
-        depth_frame:rs.depth_frame,
-        front_points:np.ndarray,
-        back_points:np.ndarray
-    ) -> float:
-        """
-        Calculate object width using the front face points.
-        """
-        sorted_by_y = front_points[np.argsort(front_points[:, 1])]
-        lowest_point = sorted_by_y[-1]
-        second_lowest_point = sorted_by_y[-2]
-
-        front_width = self.distance_estimator.distance(depth_frame, lowest_point, second_lowest_point)
-
-        sorted_by_y = front_points[np.argsort(back_points[:, 1])]
-        highest_point = sorted_by_y[0]
-        second_highest_point = sorted_by_y[1]
-        
-        back_width = self.distance_estimator.distance(depth_frame, highest_point, second_highest_point)
-        
-        width = max(front_width, back_width)
-        return float(width)
-
-
-    def __calculate_height__(
-        self,
-        depth_frame:rs.depth_frame,
-        front_points:np.ndarray,
-        back_points:np.ndarray
-    ) -> float:
-        """
-        Calculate object height using the front face points.
-        """
-        sorted_by_y = front_points[np.argsort(front_points[:, 1])]
-        lowest_point = sorted_by_y[-1]
-        sorted_by_y = front_points[np.argsort(back_points[:, 1])]
-        highest_point = sorted_by_y[0]
-        
-        side1 = front_points[
-            (front_points != lowest_point).all(axis=1)
-        ]
-        side2 = back_points[
-            (back_points != highest_point).all(axis=1)
-        ]
-
-        # Calculate height from front face (first to last point)
-        right_height = self.distance_estimator.distance(depth_frame, side1[0], side1[1])
-        left_height = self.distance_estimator.distance(depth_frame, side2[0], side2[1])
-        
-        height = max(right_height, left_height)
-        return float(height)
-
-
-    def __calculate_depth__(
-        self,
-        depth_frame:rs.depth_frame,
-        front_points,
-        back_points
-    ) -> float:
-        """
-        Calculate object depth using corresponding front and back points.
-        """
-        sorted_by_y = front_points[np.argsort(front_points[:, 1])]
-        lowest_point_f = sorted_by_y[-1]
-        highest_point_f = sorted_by_y[0]
-        
-        sorted_by_y = front_points[np.argsort(back_points[:, 1])]
-        lowest_point_b = sorted_by_y[-1]
-        highest_point_b = sorted_by_y[0]
-        
-        right_depth = self.distance_estimator.distance(depth_frame, lowest_point_f, lowest_point_b)
-        left_depth2 = self.distance_estimator.distance(depth_frame, highest_point_f, highest_point_b)
-        depth = max(right_depth, left_depth2 )
-        return float(depth)
+        sides:List[DimSide] = []
+        for i, corner in enumerate(corners):
+            next_corner = corners[0] if len(corners)-1 == i else corners[i+1]
+            distance = self.distance_estimator.distance(depth_frame, corner, next_corner)
+            sides.append(DimSide(
+                value=distance,
+                point1=corner,
+                point2=next_corner
+            ))
+        return Dimensions(sides=sides)

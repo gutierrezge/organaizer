@@ -106,11 +106,12 @@ class DepthCamera:
                     logging.warning("Depth and Color frame not found after alignment.")
                     return None
                 
-                color_image = np.asanyarray(color_frame.get_data()).copy()
-                self.depth_matrices.append(np.asanyarray(depth_frame.get_data()).copy())
+                color_frame = np.asanyarray(color_frame.get_data()).copy()
+                depth_frame = np.asanyarray(depth_frame.get_data()).copy()
+                self.depth_matrices.append(depth_frame)
 
-                color_frame = self.get_enhanced_color_image(color_image)
-                depth_frame = self.get_enhanced_depth_frame(self.depth_matrices)
+                # color_frame = self.get_enhanced_color_image(color_frame)
+                # depth_frame = self.get_enhanced_depth_frame(self.depth_matrices)
 
                 return self.detection.predict(color_frame, depth_frame)
             logging.warning("Frames are None")

@@ -17,6 +17,11 @@ FONT:int = cv2.FONT_HERSHEY_PLAIN
 FONT_SCALE:float = 2
 LINE_TYPE:int = cv2.LINE_AA
 COLOR_BLUE:tuple[int, int, int] = (255, 0, 0)
+COLOR_BLACK:tuple[int, int, int] = (0, 0, 0)
+COLOR_MAGENTA:tuple[int, int, int] = (255, 0, 255)
+COLOR_CYAN:tuple[int, int, int] = (255, 255, 0)
+COLOR_YELLOW:tuple[int, int, int] = (0, 255, 255)
+COLOR_WHITE:tuple[int, int, int] = (255, 255, 255)
 COLOR_GREEN:tuple[int, int, int] = (0, 255, 0)
 COLOR_RED:tuple[int, int, int] = (0, 0, 255)
 CORNER_SIZE:int = 5
@@ -25,11 +30,12 @@ def plot_prediction(
     frame: np.ndarray,
     bbox:Optional[np.ndarray]=None,
     mask:Optional[np.ndarray]=None,
-    corners=None,
+    dimensions=None,
     draw_bbox:bool=True,
     draw_mask:bool=True,
+    draw_corner_values:bool=False,
     draw_corners:bool=True,
-    draw_edges:bool=False
+    draw_distance:bool=True
 ) -> np.ndarray:
     """Plots bbox, mask and corners to the given frame"""
     if draw_bbox and bbox is not None:
@@ -39,7 +45,7 @@ def plot_prediction(
             (x1, y1),
             (x2, y2),
             color=COLOR_GREEN,
-            thickness=THICKNESS,
+            thickness=1,
             lineType=LINE_TYPE
         )
 
@@ -53,23 +59,37 @@ def plot_prediction(
     
         if len(mask2.shape) > 2:
             mask2:np.ndarray = cv2.cvtColor(mask2, cv2.COLOR_BGR2GRAY)
-        
-        if draw_edges:
-            contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(frame, contours, -1, COLOR_RED, THICKNESS, LINE_TYPE)
-            if corners is not None:
-                cv2.line(frame, corners.middle_front_point, corners.lowest_front_point, COLOR_RED, THICKNESS, LINE_TYPE)
-                cv2.line(frame, corners.middle_front_point, corners.highest_front_point, COLOR_RED, THICKNESS, LINE_TYPE)
-                cv2.line(frame, corners.middle_front_point, corners.middle_highest_back_point, COLOR_RED, THICKNESS, LINE_TYPE)
+    
+    if draw_corners and dimensions is not None:
+        draw_side(frame, dimensions.side4, COLOR_CYAN, draw_distance, draw_corner_values)
+        draw_side(frame, dimensions.side5, COLOR_MAGENTA, draw_distance, draw_corner_values)
+        draw_side(frame, dimensions.side3, COLOR_BLUE, draw_distance, draw_corner_values)
 
-    if draw_corners and corners is not None:
-        for i, corner in enumerate(corners.front):
-            x, y = corner.ravel()
-            cv2.circle(frame, (x, y), CORNER_SIZE, COLOR_BLUE, -1, LINE_TYPE)
-        
-        for i, corner in enumerate(corners.back):
-            if isinstance(corner, list) or isinstance(corner, np.ndarray):
-                x, y = corner.ravel()
-                cv2.circle(frame, (x, y), CORNER_SIZE, COLOR_BLUE, -1, LINE_TYPE)
 
     return frame
+
+def draw_side(frame, side, color1, draw_distance:bool=True, draw_corner_values:bool=True):
+    x, y = side.point1
+    cv2.circle(frame, (x, y), CORNER_SIZE, color1, -1, LINE_TYPE)
+    if draw_corner_values:
+        cv2.rectangle(frame, (x+10, y-40), (x+150,y-5), COLOR_WHITE, -1)
+        cv2.rectangle(frame, (x+10, y-40), (x+150, y-5), color1, THICKNESS)
+        cv2.putText(frame, f"{x},{y}", (x+15,y-10), FONT, FONT_SCALE, COLOR_BLACK, 1, LINE_TYPE)
+
+    x, y = side.point2
+    cv2.circle(frame, (x,y), CORNER_SIZE, color1, -1, LINE_TYPE)
+    if draw_corner_values:
+        cv2.rectangle(frame, (x+10, y-40), (x+150,y-5), COLOR_WHITE, -1)
+        cv2.rectangle(frame, (x+10, y-40), (x+150, y-5), color1, THICKNESS)
+        cv2.putText(frame, f"{x},{y}", (x+15,y-10), FONT, FONT_SCALE, COLOR_BLACK, 1, LINE_TYPE)
+
+    if draw_distance:
+        x1, y1 = side.point1
+        x2, y2 = side.point2
+        x = int(abs((x2+x1) //2))
+        y = int(abs((y2+y1) //2))
+
+        cv2.rectangle(frame, (x-10, y-20), (x+70, y+5), COLOR_WHITE, -1)
+        cv2.rectangle(frame, (x-10, y-20), (x+70, y+5), color1, 1)
+        cv2.putText(frame, f"{side.value:0.2f}cm", (x,y), FONT, 1, COLOR_BLACK, 1, LINE_TYPE)
+

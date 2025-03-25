@@ -84,84 +84,54 @@ class GeneratedClpPlan(BaseModel):
     remarks:str = Field(default='')
 
 
+class DimSide(BaseModel):
+    value:float
+    point1:tuple[int, int]
+    point2:tuple[int, int]
 
-class IdentifiedCornersPoints(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    front:np.ndarray
-    back:np.ndarray
-
-    @cached_property
-    def sorted_front_by_y(self) -> np.ndarray:
-        return self.front[np.argsort(self.front[:, 1])]
-
-    @cached_property
-    def sorted_back_by_y(self) -> np.ndarray:
-        return self.back[np.argsort(self.back[:, 1])]
-
-    @cached_property
-    def lowest_front_point(self) -> np.ndarray:
-        return self.sorted_front_by_y[-1]
-    
-    @cached_property
-    def lowest_back_point(self) -> np.ndarray:
-        return self.sorted_back_by_y[-1]
-    
-    @cached_property
-    def highest_front_point(self) -> np.ndarray:
-        return self.sorted_front_by_y[0]
-    
-    @cached_property
-    def highest_back_point(self) -> np.ndarray:
-        return self.sorted_back_by_y[0]
-    
-    @cached_property
-    def middle_highest_front_point(self) -> np.ndarray:
-        return self.sorted_front_by_y[1]
-    
-    @cached_property
-    def middle_highest_back_point(self) -> np.ndarray:
-        return self.sorted_back_by_y[1]
-    
-    @cached_property
-    def middle_front_point(self) -> np.ndarray:
-        y = self.lowest_front_point[1] - (self.middle_highest_front_point[1] - self.highest_front_point[1])
-        return np.array([self.lowest_front_point[0], y])
-    
-    @classmethod
-    def build(cls, corners:np.ndarray):
-        if corners is None or len(corners) != 6:
-            return None
-
-        corners:np.ndarray = corners.reshape(-1, 2)
-        
-        sorted_by_y = corners[np.argsort(corners[:, 1])]
-        lowest_point = sorted_by_y[-1]
-        second_lowest_point = sorted_by_y[-2]
-
-        candidates = corners[
-            (corners != lowest_point).all(axis=1) & 
-            (corners != second_lowest_point).all(axis=1)
-        ]
-        pair_to_seccond_lowest_point = candidates[np.argmin(np.abs(candidates[:, 0] - second_lowest_point[0]))]
-
-        front = utils.sort_values(np.array([lowest_point, second_lowest_point, pair_to_seccond_lowest_point]))
-        back=corners[
-            (corners != lowest_point).all(axis=1) & 
-            (corners != second_lowest_point).all(axis=1) &
-            (corners != pair_to_seccond_lowest_point).all(axis=1)
-        ]
-        back = utils.sort_values(np.array(back))
-        return cls(front=front.squeeze(), back=back.squeeze())
-    
 
 class Dimensions(BaseModel):
-    width:float
-    height:float
-    depth:float
+    sides:List[DimSide]
 
+    @computed_field
     @property
-    def volume(self):
-        return self.width * self.height * self.depth
+    def side1(self) -> DimSide:
+        return self.sides[0]
+    
+    @computed_field
+    @property
+    def side2(self) -> DimSide:
+        return self.sides[1]
+
+    @computed_field
+    @property
+    def side3(self) -> DimSide:
+        return self.sides[2]
+    
+    @computed_field
+    @property
+    def side4(self) -> DimSide:
+        return self.sides[3]
+    
+    @computed_field
+    @property
+    def side5(self) -> DimSide:
+        return self.sides[4]
+
+    @computed_field
+    @property
+    def side6(self) -> DimSide:
+        return self.sides[5]
+
+    @computed_field
+    @property
+    def volume(self) -> float:
+        if not self.sides:
+            return 0
+        volume = 1
+        for side in self.sides:
+            volume *= side.value
+        return volume
 
 
 class Prediction(BaseModel):
@@ -171,7 +141,7 @@ class Prediction(BaseModel):
     painted_frame:np.ndarray
     bbox:Optional[np.ndarray] = Field(default=None)
     mask:Optional[np.ndarray] = Field(default=None)
-    corners:Optional[IdentifiedCornersPoints]  = Field(default=None)
+    corners:Optional[np.ndarray]  = Field(default=None)
     dimensions:Optional[Dimensions] = Field(default=None)
 
     @cached_property

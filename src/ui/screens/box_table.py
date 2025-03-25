@@ -15,6 +15,15 @@ KV = '''
     spacing: dp(10)
     padding: dp(5)
 
+    Label:
+        text: root.index
+        size_hint_x: 0.05
+        size_hint_y: None
+        height: dp(48)
+        halign: 'left'
+        valign: 'middle'
+        color: 0, 0, 0, 1
+
     Button:
         text: "View"
         size_hint_x: 0.1
@@ -88,6 +97,12 @@ KV = '''
         padding: dp(5)
 
         Label:
+            text: "[b]No.[/b]"
+            markup: True
+            size_hint_x: 0.05
+            color: 0, 0, 0, 1
+
+        Label:
             text: "[b]View[/b]"
             markup: True
             size_hint_x: 0.1
@@ -150,7 +165,7 @@ Builder.load_string(KV)
 
 
 class BoxRow(BoxLayout):
-    index = NumericProperty()
+    index = StringProperty()
     box_id = StringProperty()
     box_width = StringProperty()
     box_height = StringProperty()

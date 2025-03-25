@@ -17,7 +17,7 @@ from kivy.metrics import dp
 from kivy.graphics.texture import Texture
 from camera import DepthCamera
 from config import Config
-from clp import ClpPlanGenerator
+from clp import ClpPlanGenerator, GenAIClpGenerator
 import numpy as np
 from .box_table import BoxTable
 from .clp_table import ClpTable
@@ -95,10 +95,21 @@ ExecutionScreen_KV = """
                     size_hint: None, None
                     size: dp(640), dp(480)
                     post_hint: {"center_x": 0.5}
-                            
-            MDRaisedButton:
-                text: "Capture"
-                on_release: root.capture_image()
+            
+            MDBoxLayout:
+                orientation: 'horizontal'
+                padding: 0
+                spacing: 440
+                size_hint: None, None
+                size: dp(640), dp(50)
+
+                MDRaisedButton:
+                    text: "Capture"
+                    on_release: root.capture_image()
+
+                MDRaisedButton:
+                    text: "Generate CLP"
+                    on_release: root.generate_plan()
             
             MDBoxLayout:
                 size_hint: None, 0.5
@@ -136,7 +147,7 @@ class ExecutionScreen(Screen):
         Screen.__init__(self, **kwargs)
         self.config = Config()
         self.camera = DepthCamera(self.config)
-        self.clp_plan_generator = ClpPlanGenerator()
+        self.clp_plan_generator = GenAIClpGenerator()
 
         self.box_table = BoxTable(remove_row_callback=self.on_box_table_remove_row)
         self.clp_table = ClpTable()
@@ -183,7 +194,6 @@ class ExecutionScreen(Screen):
         if self.execution:
             try:
                 self.execution.container_width = float(value)
-                self.generate_plan()
             except: pass
             
     
@@ -191,14 +201,12 @@ class ExecutionScreen(Screen):
         if self.execution:
             try:
                 self.execution.container_height = float(value)
-                self.generate_plan()
             except: pass
     
     def on_container_depth(self, instance:MDTextField, value:str):
         if self.execution:
             try:
                 self.execution.container_depth = float(value)
-                self.generate_plan()
             except: pass
         
 
@@ -275,7 +283,6 @@ class ExecutionScreen(Screen):
                 "frame_texture": self.to_texture(box.frame),
             } for i, box in enumerate(self.execution.boxes)
         ])
-        self.generate_plan()
 
 
     def image_removed(self, box:Box):
@@ -291,15 +298,14 @@ class ExecutionScreen(Screen):
 
 
     def generate_plan(self):
-        plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
-        self.clp_remarks.text = plan.remarks
+        if len(self.execution.boxes) > 0:
+            plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
+            self.clp_remarks.text = plan.remarks
 
-        self.clp_table.set_rows([
-            {
+            self.clp_table.set_rows([{
                 "index": str(int(i)),
                 "box_id": item.short_id,
                 "box_x": f"{item.x:.02f}",
                 "box_y": f"{item.y:.02f}",
                 "box_z": f"{item.z:.02f}"
-            } for i, item in enumerate(plan.plan)
-        ])
+            } for i, item in enumerate(plan.plan)])

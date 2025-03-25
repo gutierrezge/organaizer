@@ -59,6 +59,10 @@ class GenAIClpGenerator:
                     x: the location index of the box in the X plane
                     y: the location index of the box in the Y plane
                     z: the location index of the box in the Z plane
+                    p: integer from 1 to 3 on how to place the box from a sample box of 1x2x3.
+                        1 if the 1x3 side is to be facing front. the side 1 is at the bottom and 3 would be the height
+                        2 if the 2x3 side is to be facing front. the side 2 is at the bottom and 3 would be the height
+                        3 if the 3x1 side is to be facing front. the side 3 is at the bottom and 1 would be the height
 
                     the X, Y and Z are not meant to track the distance, but instead the index 0, 1, 2 of the boxes placed.
                     """
@@ -117,27 +121,3 @@ class ClpPlanGenerator:
             ],
             remarks=remarks
         )
-    
-if __name__ == "__main__":
-    eId = uuid4()
-    plan = GenAIClpGenerator().generate(Execution(
-        id=eId,
-        container_width=70,
-        container_height=70,
-        container_depth=70,
-        boxes=[
-            Box(
-                id=uuid4(),
-                execution_id=eId,
-                frame=np.array([0,1,2]),
-                x1=20,
-                x2=20,
-                y1=20,
-                y2=20,
-                width=rnd.uniform(7, 25),
-                height=rnd.uniform(7, 25),
-                depth=rnd.uniform(7, 25)
-            ) for _ in range(50)
-        ]
-    ))
-    print(plan)

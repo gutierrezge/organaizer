@@ -12,7 +12,6 @@ from functools import cached_property
 from uuid import UUID
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-import utils
 
 class Box(BaseModel):
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)

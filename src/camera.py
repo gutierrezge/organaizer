@@ -12,7 +12,6 @@ import cv2
 import numpy as np
 import pyrealsense2 as rs
 from typing import Optional
-from config import CameraConfig
 from detection.box import BoxDetection
 from domain import Prediction
 from log import logging
@@ -109,9 +108,6 @@ class DepthCamera:
                 color_frame = np.asanyarray(color_frame.get_data()).copy()
                 depth_frame = np.asanyarray(depth_frame.get_data()).copy()
                 self.depth_matrices.append(depth_frame)
-
-                # color_frame = self.get_enhanced_color_image(color_frame)
-                # depth_frame = self.get_enhanced_depth_frame(self.depth_matrices)
 
                 return self.detection.predict(color_frame, depth_frame)
             logging.warning("Frames are None")

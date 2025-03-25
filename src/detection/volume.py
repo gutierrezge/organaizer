@@ -6,12 +6,11 @@
 #
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
-from typing import Optional, List
+from typing import List
 from domain import Dimensions, DimSide
 from detection.distance import DistanceEstimator
 import numpy as np
-import pyrealsense2 as rs
-from log import logging
+
 
 class DimensionsEstimator:
 

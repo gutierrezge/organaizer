@@ -19,7 +19,6 @@ from domain import Prediction, Dimensions
 import pyrealsense2 as rs
 import utils
 import plot
-from log import logging
 
 class BoxDetection:
 
@@ -158,7 +157,6 @@ class BoxDetection:
                 
                 if sam_result is not None and len(sam_result) > 0:
                     mask:np.ndarray = sam_result[0].masks.data.cpu().numpy()[0]
-                    # mask = self.optimize_mask(mask, depth_frame)
                     bbox:np.ndarray = self.__get_bbox_from_mask__(mask, bbox)
                     corners:Optional[np.ndarray] = self.__detect_corners__(mask)
                     if corners is not None:

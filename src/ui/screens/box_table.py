@@ -1,9 +1,8 @@
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from typing import Callable
-from uuid import UUID
 from kivy.properties import StringProperty, NumericProperty, ObjectProperty
-from log import logging
+
 
 
 KV = '''

@@ -70,7 +70,7 @@ class ClpItem(BaseModel):
     x: float
     y: float
     z: float
-    p: int = Field(ge=1, le=3)
+    p: int = Field(ge=1, le=5)
     created_on: datetime = Field(default=datetime.now())
 
     @cached_property

@@ -14,7 +14,7 @@ KV = '''
 
     Label:
         text: root.box_id
-        size_hint_x: 0.25
+        size_hint_x: 0.20
         size_hint_y: None
         height: dp(48)
         halign: 'left'
@@ -23,7 +23,7 @@ KV = '''
 
     Label:
         text: root.box_x
-        size_hint_x: 0.25
+        size_hint_x: 0.20
         size_hint_y: None
         height: dp(48)
         halign: 'left'
@@ -32,7 +32,7 @@ KV = '''
 
     Label:
         text: root.box_y
-        size_hint_x: 0.25
+        size_hint_x: 0.20
         size_hint_y: None
         height: dp(48)
         halign: 'left'
@@ -41,12 +41,17 @@ KV = '''
     
     Label:
         text: root.box_z
-        size_hint_x: 0.25
+        size_hint_x: 0.20
         size_hint_y: None
         height: dp(48)
         halign: 'left'
         valign: 'middle'
         color: 0, 0, 0, 1
+
+    Image:
+        source: root.box_p
+        size_hint_x: 0.20
+        size: dp(48), dp(48)
 
 
 <ClpTable>:
@@ -63,25 +68,31 @@ KV = '''
         Label:
             text: "[b]Box Id[/b]"
             markup: True
-            size_hint_x: 0.1
+            size_hint_x: 0.20
             color: 0, 0, 0, 1
 
         Label:
             text: "[b]X[/b]"
             markup: True
-            size_hint_x: 0.1
+            size_hint_x: 0.20
             color: 0, 0, 0, 1
 
         Label:
             text: "[b]Y[/b]"
             markup: True
-            size_hint_x: 0.1
+            size_hint_x: 0.20
             color: 0, 0, 0, 1
 
         Label:
             text: "[b]Z[/b]"
             markup: True
-            size_hint_x: 0.1
+            size_hint_x: 0.20
+            color: 0, 0, 0, 1
+
+        Label:
+            text: "[b]Hint[/b]"
+            markup: True
+            size_hint_x: 0.20
             color: 0, 0, 0, 1
 
     RecycleView:
@@ -104,6 +115,7 @@ class ClpRow(BoxLayout):
     box_x = StringProperty()
     box_y = StringProperty()
     box_z = StringProperty()
+    box_p = StringProperty()
 
 
 class ClpTable(BoxLayout):

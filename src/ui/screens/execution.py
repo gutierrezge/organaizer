@@ -301,7 +301,6 @@ class ExecutionScreen(Screen):
         if len(self.execution.boxes) > 0:
             plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
             self.clp_remarks.text = plan.remarks
-            print(plan)
 
             self.clp_table.set_rows([{
                 "index": str(int(i)),
@@ -313,13 +312,15 @@ class ExecutionScreen(Screen):
             } for i, item in enumerate(plan.plan)])
 
     def get_hint_source(self, item):
-        if item.p == '1':
-            return 'images/1x3.jpeg' 
-        elif item.p == '2':
-            return 'images/2x3.jpeg'
-        elif item.p == '3':
-            return 'images/3x1.jpeg'
-        elif item.p == '4':
-            return 'images/3x2.jpeg'
+        if item.p == 1:
+            source = 'images/1x3.jpeg' 
+        elif item.p == 2:
+            source = 'images/2x3.jpeg'
+        elif item.p == 3:
+            source = 'images/3x1.jpeg'
+        elif item.p == 4:
+            source = 'images/3x2.jpeg'
         else:
-            return 'images/2x3.jpeg0'
+            source = 'images/2x3.jpeg'
+
+        return source

@@ -8,13 +8,13 @@
 
 import os
 import json
+import random as rnd
+import numpy as np
 from dotenv import load_dotenv
+from uuid import uuid4
 from py3dbp import Packer, Bin, Item
-from domain import Execution, GeneratedClpPlan, ClpItem
+from domain import Execution, GeneratedClpPlan, ClpItem, Box
 import openai
-from openai.types.chat.chat_completion_system_message_param import ChatCompletionSystemMessageParam
-from openai.types.chat.chat_completion_content_part_text_param import ChatCompletionContentPartTextParam
-from openai.types.chat.chat_completion_user_message_param import ChatCompletionUserMessageParam
 
 load_dotenv()
 
@@ -26,41 +26,68 @@ class GenAIClpGenerator:
             azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT'),
             api_version = os.getenv('AZURE_API_VERSION')
         )
-        self.model = os.getenv('AZURE_DEPLOYMENT_NAME')
-        with open("instructions.txt", "r") as f:
-            self.system_message = ChatCompletionSystemMessageParam(
-                role="system",
-                content=[ChatCompletionContentPartTextParam(
-                    type="text",
-                    text=f.read()
-                )]
-            )
 
     def generate(self, execution:Execution) -> GeneratedClpPlan:
-        data = ["id,width,height,depth"]
+        data = ["box_id,width,height,depth"]
         for box in execution.boxes:
             data.append(",".join([str(box.id), f"{box.width:.02f}", f"{box.height:.02f}", f"{box.depth:.02f}"]))
         data = "\n".join(data)
-        user_message = f"Generate a CLP for the following container: width={execution.container_width}, height={execution.container_height}, depth={execution.container_depth} and boxes:\n{data}"
         response = self.client.chat.completions.create(
-            model=self.model,
+            model=os.getenv('AZURE_DEPLOYMENT_NAME'),
             stream=True,
-            messages=[
-                self.system_message,
-                ChatCompletionUserMessageParam(
-                    role="user",
-                    content=[ChatCompletionContentPartTextParam(
-                        type="text",
-                        content=user_message
-                    )]
-                )
-            ]
+            messages=[{
+                "role": "system",
+                "content": [{
+                    "type": "text",
+                    "text": """
+                    You are a packaging logistic expert.
+                    You must provide a container loading plan ordered from left to right, bottom to top, from back to front.
+                    Start organzing the biggest boxes first.
+                    You may rotate the boxes provided in order to fit as many as possible into the container.
+                    You MUST ensure that if a box is on top of another box, the box below covers at least 60% of the box on top.
+                    You MUST ensure that boxes cannot be placed in the "AIR" or without proper support.
+                    You MUST provide the position of how the box should be placed by renferencing a sample box of 1x2x3.
+                        - Select 1 if the 1x3 side is to be facing front. the side 1 is at the bottom and 3 would be the height
+                        - Select 2 if the 2x3 side is to be facing front. the side 2 is at the bottom and 3 would be the height
+                        - Select 3 if the 3x1 side is to be facing front. the side 3 is at the bottom and 1 would be the height
+                        - Select 4 if the 3x2 side is to be facing front. the side 3 is at the bottom and 2 would be the hightt
+                        - Select 5 if the 2x1 side is to be facing front. the side 2 is at the bottom and 1 would be the height
+                    Think of at leat 3 CLPs and select the one that fits the most boxes.
+                    Take your time, do not rush to provide an answer unless is the most efficient in order to maximize the amount of boxes organizzed.
+
+                    You MUST always provide a properly formatted JSON string.
+                    DO NOT RETURN ANYTHING ELSE THAN THE JSON.
+                    The JSON must contain the following attributes:
+                    plan: a List of items organized.
+                    left_over_boxes: a List with the IDs of the boxes unable to fit.
+                    remarks: a string saying if "All boxes fitted in the container" or "N boxes did not fit in the container."
+                    Where N is the total count of boxes in the left_over_boxes
+
+                    The items have the following attributes:
+                        box_id: Id of the box
+                        x: the location index of the box in the X plane
+                        y: the location index of the box in the Y plane
+                        z: the location index of the box in the Z plane
+                        p: integer from 1 to 5 on how to place the box.
+
+                    the X, Y and Z are not meant to track the distance, but instead the index 0, 1, 2 of the boxes placed.
+                    """
+                }]
+            },
+            {
+                "role": "user",
+                "content": [{
+                    "type": "text",
+                    "text": f"Generatel CLP for the following container: W={execution.container_width}, H={execution.container_height}, D={execution.container_depth} and boxes:\n{data}"
+                }]
+            }]
         )
-        texts = [
-            chunk.choices[0].delta.content for chunk in response if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content is not None
-        ]
-        
-        return GeneratedClpPlan(**json.loads("".join(texts)))
+        raw_json = ""
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content is not None:
+                raw_json += chunk.choices[0].delta.content
+        raw_json = raw_json.replace("```json", "").replace("```", "").replace("\n", "")
+        return GeneratedClpPlan(**json.loads(raw_json))
 
 
 

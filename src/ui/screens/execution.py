@@ -136,10 +136,10 @@ ExecutionScreen_KV = """
 """
 
 class ExecutionScreen(Screen):
-    container_width = StringProperty('0.0')
-    container_height = StringProperty('0.0')
-    container_depth = StringProperty('0.0')
-    execution:Execution = ObjectProperty(Execution(id=uuid4()))
+    container_width = StringProperty('200.0')
+    container_height = StringProperty('200.0')
+    container_depth = StringProperty('200.0')
+    execution:Execution = ObjectProperty(Execution(id=uuid4(), container_width=200, container_height=200, container_depth=200))
     latest_prediction:Optional[Prediction] = None
     clp_remarks:Label = None
     
@@ -301,15 +301,17 @@ class ExecutionScreen(Screen):
         if len(self.execution.boxes) > 0:
             plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
             self.clp_remarks.text = plan.remarks
-
-            self.clp_table.set_rows([{
+            
+            clp_rows = [{
                 "index": str(int(i)),
                 "box_id": item.short_id,
                 "box_x": f"{item.x:.02f}",
                 "box_y": f"{item.y:.02f}",
                 "box_z": f"{item.z:.02f}",
                 "box_p": f"{self.get_hint_source(item)}"
-            } for i, item in enumerate(plan.plan)])
+            } for i, item in enumerate(plan.plan)]
+            print(clp_rows)
+            self.clp_table.set_rows(clp_rows)
 
     def get_hint_source(self, item):
         if item.p == 1:

@@ -16,7 +16,7 @@ class DistanceEstimator:
         self.depth_intrinsics:rs.intrinsics = depth_intrinsics
         self.config = config
 
-    def get_stable_value(self, depth_frame:np.ndarray, p1: tuple[int, int], sigma:float=1.5, k=5):
+    def get_stable_value(self, depth_frame:np.ndarray, p1: tuple[int, int], sigma:float=1.5, k=11):
         y, x = p1
         h, w = depth_frame.shape
 

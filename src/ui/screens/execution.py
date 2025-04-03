@@ -99,16 +99,25 @@ ExecutionScreen_KV = """
             MDBoxLayout:
                 orientation: 'horizontal'
                 padding: 0
-                spacing: 440
+                spacing: 150
                 size_hint: None, None
                 size: dp(640), dp(50)
 
                 MDRaisedButton:
+                    id: start_stop_camera_button
+                    text: "Start Camera"
+                    on_release: root.start_stop_camera()
+
+                MDRaisedButton:
+                    id: capture_image_button
                     text: "Capture"
+                    disabled: True
                     on_release: root.capture_image()
 
                 MDRaisedButton:
+                    id: generate_clp_button
                     text: "Generate CLP"
+                    disabled: True
                     on_release: root.generate_plan()
             
             MDBoxLayout:
@@ -142,6 +151,7 @@ class ExecutionScreen(Screen):
     execution:Execution = ObjectProperty(Execution(id=uuid4(), container_width=200, container_height=200, container_depth=200))
     latest_prediction:Optional[Prediction] = None
     clp_remarks:Label = None
+    capturing_video:bool = False
     
     def __init__(self, **kwargs):
         Screen.__init__(self, **kwargs)
@@ -213,11 +223,27 @@ class ExecutionScreen(Screen):
     def on_pre_enter(self, *args):
         self.reset_data()
         self.video = self.ids.video
-        Clock.schedule_once(self.start_video_capture)
         return super().on_pre_enter(*args)
     
+    def start_stop_camera(self):
+        self.capturing_video = not self.capturing_video
+        self.ids.capture_image_button.disabled = not self.capturing_video
+        
+        if self.capturing_video:
+            self.ids.start_stop_camera_button.text = "Stop Camera"
+            self.video = self.ids.video
+            Clock.schedule_once(self.start_video_capture)
+        else:
+            self.camera.stop_camera()
+            self.ids.start_stop_camera_button.text = "Start Camera"
+            w, h = self.camera.config.camera.resolution
+            texture = Texture.create(size=self.camera.config.camera.resolution, colorfmt='bgr')
+            texture.blit_buffer(np.zeros((h, w, 3), dtype=np.uint8).tobytes(), colorfmt='bgr', bufferfmt='ubyte')
+            self.video.texture = texture
+
+    
     def start_video_capture(self, dt):
-        if self.camera.open_camera():
+        if self.capturing_video and self.camera.open_camera():
             Clock.schedule_once(self.update_video_panel)
 
     def on_pre_leave(self, *args):
@@ -283,6 +309,7 @@ class ExecutionScreen(Screen):
                 "frame_texture": self.to_texture(box.frame),
             } for i, box in enumerate(self.execution.boxes)
         ])
+        self.ids.generate_clp_button.disabled = len(self.execution.boxes) == 0
 
 
     def image_removed(self, box:Box):
@@ -299,6 +326,9 @@ class ExecutionScreen(Screen):
 
     def generate_plan(self):
         if len(self.execution.boxes) > 0:
+            print("    ID      , S1, S2, S3")
+            for box in self.execution.boxes:
+                print(f"{box.short_id}, {int(box.width)}, {int(box.height)}, {int(box.depth)}")
             plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
             self.clp_remarks.text = plan.remarks
             
@@ -310,7 +340,9 @@ class ExecutionScreen(Screen):
                 "box_z": f"{item.z:.02f}",
                 "box_p": f"{self.get_hint_source(item)}"
             } for i, item in enumerate(plan.plan)]
-            print(clp_rows)
+            print("id          , X, Y, Z")
+            for box in plan.plan:
+                print(f"{box.short_id}, {int(box.x)}, {int(box.y)}, {int(box.z)}")
             self.clp_table.set_rows(clp_rows)
 
     def get_hint_source(self, item):

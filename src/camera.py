@@ -28,19 +28,18 @@ class DepthCamera:
         self.distance_estimator = None
         self.align = None
         self.running = False
+        
+        self.rs_config = rs.config()
+        self.rs_config.disable_all_streams()
+        self.rs_config.enable_stream(rs.stream.depth, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.z16, self.config.camera.fps)
+        self.rs_config.enable_stream(rs.stream.color, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.bgr8, self.config.camera.fps)
 
 
     def open_camera(self):
         if not self.is_open():
             try:
                 self.pipeline:rs.pipeline = rs.pipeline()
-                
-                config = rs.config()
-                config.disable_all_streams()
-                config.enable_stream(rs.stream.depth, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.z16, self.config.camera.fps)
-                config.enable_stream(rs.stream.color, self.config.camera.resolution[0], self.config.camera.resolution[1], rs.format.bgr8, self.config.camera.fps)
-                
-                pipeline_profile = self.pipeline.start(config)
+                pipeline_profile = self.pipeline.start(self.rs_config)
                 self.align = rs.align(rs.stream.color)
                 self.depth_intrinsics:rs.intrinsics = rs.video_stream_profile(pipeline_profile.get_stream(rs.stream.depth)).get_intrinsics()
                 
@@ -49,6 +48,10 @@ class DepthCamera:
                 logging.info("Depth Camera openned.")
             except:
                 self.running = False
+                self.pipeline = None
+                self.depth_intrinsics = None
+                self.distance_estimator = None
+                self.align = None
                 logging.error("Unable to open camera", exc_info=True)
 
         return self.running
@@ -59,18 +62,25 @@ class DepthCamera:
 
 
     def stop_camera(self):
-        if self.is_open():
-            try:
-                if self.pipeline:
-                    self.pipeline.stop()
-            except:
-                pass
-            self.pipeline = None
-            self.depth_intrinsics = None
-            self.distance_estimator = None
-            self.align = None
+        try:
+            if self.is_open():
+                logging.info("Closing camera ...")
+                try:
+                    if self.pipeline:
+                        self.pipeline.stop()
+                except:
+                    logging.error("Failed to close camera.", exc_info=True)
+                    pass
+                self.pipeline = None
+                self.depth_intrinsics = None
+                self.distance_estimator = None
+                self.align = None
+                logging.info("Resources closed!")
+        finally:
+            self.running = False
 
     def read(self) -> Optional[Prediction]:
+        if not self.is_open(): return None
         try:
             frames:rs.composite_frame = self.pipeline.wait_for_frames(timeout_ms=1000)
             if frames:
@@ -99,8 +109,3 @@ class DepthCamera:
             logging.error("Unable to capture frames.", exc_info=True)
 
         return None
-
-    def restart_camera(self) -> bool:
-        self.stop_camera()
-        time.sleep(5)
-        return self.open_camera()

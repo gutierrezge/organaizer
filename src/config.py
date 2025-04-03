@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 
 class DistanceConfig(BaseModel):
-    distance_factor:float = Field(default=0.75)
+    distance_factor:float = Field(default=1)
     to_centimeter:float = Field(default=1/10)
 
 
@@ -27,7 +27,6 @@ class CameraConfig(BaseModel):
     camera_id:int = Field(default=0)
     resolution: tuple[int, int] = Field(default=(640, 480))
     fps:int = Field(default=30)
-    frame_buffer:int = Field(default=1)
     
     
 class Config(BaseModel):

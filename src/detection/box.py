@@ -8,17 +8,98 @@
 
 import cv2
 from uuid import uuid4
-from typing import Optional
+from typing import Optional, List
 from ultralytics import YOLO, SAM
 import numpy as np
 from scipy.spatial import ConvexHull
 from itertools import combinations
 from config import Config
 from detection.volume import DimensionsEstimator, DistanceEstimator
-from domain import Prediction, Dimensions
+from domain import Prediction, Dimensions, DimSide
 import pyrealsense2 as rs
 import utils
 import plot
+
+class Tracker:
+
+    def __init__(self):
+        self.tracks:List[Prediction] = []
+        self.maxlen = 101
+
+    def get_stable_value(self, data:List[float], sigma:float=3):
+        data_array = np.array(data)
+
+        # Calculate Q1 and Q3
+        q1 = np.percentile(data_array, 25)
+        q3 = np.percentile(data_array, 75)
+        iqr = q3 - q1
+
+        # Define bounds
+        lower_bound = q1 - sigma * iqr
+        upper_bound = q3 + sigma * iqr
+
+        # Filter out outliers
+        filtered_data = data_array[(data_array >= lower_bound) & (data_array <= upper_bound)]
+        return int(np.median(filtered_data))
+
+
+    def get_sides(self):
+        pred = self.tracks[-1]
+        if len(self.tracks) < 10:
+            return pred.dimensions.side3, pred.dimensions.side4, pred.dimensions.side5
+        
+        side3, side4, side5 = [], [], []
+        for pred in self.tracks:
+            side3.append(pred.dimensions.side3.value)
+            side4.append(pred.dimensions.side4.value)
+            side5.append(pred.dimensions.side5.value)
+
+        side3 = self.get_stable_value(side3)
+        side4 = self.get_stable_value(side4)
+        side5 = self.get_stable_value(side5)
+
+        side3 = DimSide(
+            value=side3,
+            point1=pred.dimensions.side3.point1,
+            point2=pred.dimensions.side3.point2
+        )
+        side4 = DimSide(
+            value=side4,
+            point1=pred.dimensions.side4.point1,
+            point2=pred.dimensions.side4.point2
+        )
+        side5 = DimSide(
+            value=side5,
+            point1=pred.dimensions.side5.point1,
+            point2=pred.dimensions.side5.point2
+        )
+        return side3, side4, side5
+
+    def update(self, prediction: Prediction):
+        if len(self.tracks) > 0 and (prediction.detection_time - self.tracks[-1].detection_time) > 1000*5:
+            self.tracks = []
+
+        if prediction.dimensions:
+            self.tracks.append(prediction)
+            self.tracks = self.tracks[-self.maxlen:]
+            if len(self.tracks) > 5:
+                side3, side4, side5 = self.get_sides()
+                return prediction.model_copy(update={
+                    "dimensions": Dimensions(
+                        sides=[
+                            prediction.dimensions.side1,
+                            prediction.dimensions.side2,
+                            side3,
+                            side4,
+                            side5,
+                            prediction.dimensions.side6
+                        ]
+                    )
+                })
+            else:
+                return prediction
+
+        return prediction
 
 class BoxDetection:
 
@@ -27,6 +108,7 @@ class BoxDetection:
         self.config = config
         self.box_model_file = config.detection.box_model
         self.sam_model_file = config.detection.sam_model
+        self.tracker = Tracker()
         
 
     
@@ -125,9 +207,9 @@ class BoxDetection:
         return (mask & (depth_frame >= lower_bound) & (depth_frame <= upper_bound))
 
 
-    def predict(self, frame: np.ndarray, depth_frame:np.ndarray) -> Prediction:
+    def predict(self, frame: np.ndarray, enhanced: np.ndarray, depth_frame:np.ndarray) -> Prediction:
         box_results = self.box_model.predict(
-            source=frame,
+            source=enhanced,
             conf=self.config.detection.confidence,
             iou=self.config.detection.iou,
             max_det=100,
@@ -140,13 +222,13 @@ class BoxDetection:
                 for box in box_result.boxes:
                     bbox = np.int32(box.xyxy[0].tolist())
                     bbox_area = (bbox[2]-bbox[0])*(bbox[3]-bbox[1])
-                    frame_area = frame.shape[0]*frame.shape[1]
+                    frame_area = enhanced.shape[0]*enhanced.shape[1]
                     bbox_pct = bbox_area/ frame_area
                     
                     # Ensure we are not getting a weird detection taking almos the whole screen
                     if bbox_pct > 0.05 and bbox_pct < 0.6:
                         sam_result = self.sam_model(
-                            frame, bboxes=[bbox], verbose=False
+                            enhanced, bboxes=[bbox], verbose=False
                         )
                         
                         if sam_result is not None and len(sam_result) > 0:
@@ -155,7 +237,7 @@ class BoxDetection:
                             corners:Optional[np.ndarray] = self.__detect_corners__(mask)
                             if corners is not None:
                                 dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
-                                return Prediction(
+                                prediction = Prediction(
                                     id=uuid4(),
                                     frame=frame,
                                     painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, dimensions),
@@ -164,16 +246,18 @@ class BoxDetection:
                                     corners=corners,
                                     dimensions=dimensions
                                 )
+                                return self.tracker.update(prediction)
                             else:
                                 continue
                         else:
                             continue
                     else:
                         continue
-        return Prediction(
+        prediction = Prediction(
             id=uuid4(),
             frame=frame,
             painted_frame=plot.plot_prediction(frame.copy())
         )
+        return self.tracker.update(prediction)
             
             

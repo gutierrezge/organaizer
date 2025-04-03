@@ -26,7 +26,7 @@ class DimensionsEstimator:
             next_corner = corners[0] if len(corners)-1 == i else corners[i+1]
             distance = self.distance_estimator.distance(depth_frame, corner, next_corner)
             sides.append(DimSide(
-                value=distance,
+                value=int(distance),
                 point1=corner,
                 point2=next_corner
             ))

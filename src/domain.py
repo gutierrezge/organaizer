@@ -8,6 +8,7 @@
 
 from datetime import datetime
 import numpy as np
+import time
 from functools import cached_property
 from uuid import UUID
 from typing import List, Optional
@@ -85,7 +86,7 @@ class GeneratedClpPlan(BaseModel):
 
 
 class DimSide(BaseModel):
-    value:float
+    value:int
     point1:tuple[int, int]
     point2:tuple[int, int]
 
@@ -143,6 +144,7 @@ class Prediction(BaseModel):
     mask:Optional[np.ndarray] = Field(default=None)
     corners:Optional[np.ndarray]  = Field(default=None)
     dimensions:Optional[Dimensions] = Field(default=None)
+    detection_time:int = Field(default_factory=lambda: int(time.time()*1000))
 
     @cached_property
     def size(self) -> tuple[int, int]:

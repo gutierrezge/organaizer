@@ -15,7 +15,6 @@ from typing import Optional
 from detection.box import BoxDetection
 from domain import Prediction
 from log import logging
-from collections import deque
 from config import Config
 
 class DepthCamera:
@@ -29,7 +28,6 @@ class DepthCamera:
         self.distance_estimator = None
         self.align = None
         self.running = False
-        self.depth_matrices = deque(maxlen=self.config.camera.frame_buffer)
 
 
     def open_camera(self):
@@ -71,20 +69,6 @@ class DepthCamera:
             self.depth_intrinsics = None
             self.distance_estimator = None
             self.align = None
-            self.depth_matrices.clear()
-
-
-    def get_enhanced_color_image(self, image:np.ndarray):
-        lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-        l, a, b = cv2.split(lab)
-        l = cv2.equalizeHist(l)
-        enhanced_lab = cv2.merge((l, a, b))
-        return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2RGB)
-
-
-    def get_enhanced_depth_frame(self, depths):
-        return np.mean(depths, axis=0)
-
 
     def read(self) -> Optional[Prediction]:
         try:
@@ -107,9 +91,9 @@ class DepthCamera:
                 
                 color_frame = np.asanyarray(color_frame.get_data()).copy()
                 depth_frame = np.asanyarray(depth_frame.get_data()).copy()
-                self.depth_matrices.append(depth_frame)
+                enhanced = cv2.cvtColor(cv2.equalizeHist(cv2.cvtColor(color_frame, cv2.COLOR_RGB2GRAY)), cv2.COLOR_GRAY2BGR)
 
-                return self.detection.predict(color_frame, depth_frame)
+                return self.detection.predict(color_frame, enhanced, depth_frame)
             logging.warning("Frames are None")
         except:
             logging.error("Unable to capture frames.", exc_info=True)

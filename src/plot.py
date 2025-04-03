@@ -24,7 +24,7 @@ COLOR_YELLOW:tuple[int, int, int] = (0, 255, 255)
 COLOR_WHITE:tuple[int, int, int] = (255, 255, 255)
 COLOR_GREEN:tuple[int, int, int] = (0, 255, 0)
 COLOR_RED:tuple[int, int, int] = (0, 0, 255)
-CORNER_SIZE:int = 5
+CORNER_SIZE:int = 2
 
 def plot_prediction(
     frame: np.ndarray,
@@ -91,5 +91,5 @@ def draw_side(frame, side, color1, draw_distance:bool=True, draw_corner_values:b
 
         cv2.rectangle(frame, (x-10, y-20), (x+70, y+5), COLOR_WHITE, -1)
         cv2.rectangle(frame, (x-10, y-20), (x+70, y+5), color1, 1)
-        cv2.putText(frame, f"{side.value:0.2f}cm", (x,y), FONT, 1, COLOR_BLACK, 1, LINE_TYPE)
+        cv2.putText(frame, f"{side.value}cm", (x,y), FONT, 1, COLOR_BLACK, 1, LINE_TYPE)
 

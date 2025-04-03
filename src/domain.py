@@ -7,12 +7,16 @@
 # Copyright (c) Lucía Alejandra Moreno Canuto, Gabriel Ernesto Gutiérrez Añez, Alicia Hernández Gutiérrez, Guillermo Daniel González Lozano
 
 from datetime import datetime
+import os
+from dotenv import load_dotenv, find_dotenv
 import numpy as np
 import time
 from functools import cached_property
 from uuid import UUID
-from typing import List, Optional
+from typing import List, Optional, Literal, Any
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+load_dotenv(find_dotenv())
 
 class Box(BaseModel):
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
@@ -71,7 +75,7 @@ class ClpItem(BaseModel):
     x: float
     y: float
     z: float
-    p: int = Field(ge=1, le=5)
+    image: str
     created_on: datetime = Field(default=datetime.now())
 
     @cached_property
@@ -157,4 +161,103 @@ class Prediction(BaseModel):
     def is_complete(self) -> bool:
         return self.frame is not None and self.bbox is not None and self.painted_frame is not None \
             and self.mask is not None and self.corners is not None and self.dimensions is not None
+
+class BinPackingItems(BaseModel):
+    id:str
+    w:float
+    h:float
+    d:float
+    wg:Optional[float] = Field(default=1)
+    q:int = Field(default=1)
+    vr:Optional[int] = Field(default=1)
+
+class BinPackingBin(BaseModel):
+    id:str
+    w:float
+    h:float
+    d:float
+    wg:float = Field(default=1)
+    max_wg:str = Field(default="10000")
+    q:Optional[int] = Field(default=None)
+    cost:float = Field(default=0)
+    type:Literal['box', 'pallet'] = Field(default='box')
+
+class BinPackingResponseParams(BaseModel):
+    images_background_color:str = Field(default="255,255,255")
+    images_bin_border_color:str = Field(default="59,59,59")
+    images_bin_fill_color:str = Field(default="230,230,230")
+    images_item_border_color:str = Field(default="22,22,22")
+    images_item_fill_color:str = Field(default="255,193,6")
+    images_item_back_border_color:str = Field(default="22,22,22")
+    images_sbs_last_item_fill_color:str = Field(default="177,14,14")
+    images_sbs_last_item_border_color:str = Field(default="22,22,22")
+    images_format:str = Field(default="png")
+    images_width:int = Field(default=200)
+    images_height:int = Field(default=200)
+    images_source:str = Field(default="file")
+    stats:int = Field(default=0)
+    item_coordinates:int = Field(default=1)
+    images_complete:int = Field(default=1)
+    images_sbs:int = Field(default=1)
+    images_separated:int = Field(default=0)
+    optimization_mode:str = Field(default="bins_number")
+    images_version:int = Field(default=2)
+
+class BinPackingRequest(BaseModel):
+    username:str = Field(default=os.getenv('BIN3D_PACKING_USERNAME'))
+    api_key:str = Field(default=os.getenv('BIN3D_PACKING_API_KEY'))
+    items: List[BinPackingItems]
+    bins: List[BinPackingBin]
+    params: BinPackingResponseParams = Field(default=BinPackingResponseParams())
+
+
+class BinData(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    id: str
+    w: float
+    h: float
+    d: float
+    used_space: float
+    weight: float
+    gross_weight:float
+    used_weight:float
+    stack_height: float
+
+class BinPackedItemCoordinates(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    x1:int
+    y1:int
+    z1:int
+    x2:int
+    y2:int
+    z2:int
+
+class BinPackedItem(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    id:str
+    w:float
+    h:float
+    d:float
+    wg:float
+    image_sbs:str
+    coordinates: BinPackedItemCoordinates
+
+class BinPacked(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    bin_data:BinData
+    image_complete:str
+    items: List[BinPackedItem]
+
+
+class PackingResponse(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    id:str
+    bins_packed: List[BinPacked]
+    errors:List[Any]
+    status:Literal[0, 1]
+    not_packed_items: List[BinPackingItems]
     
+
+class BinPackingResponse(BaseModel):
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    response: PackingResponse

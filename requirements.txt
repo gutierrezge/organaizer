@@ -9,4 +9,3 @@ kivy
 kivymd
 pydantic
 ultralytics
-py3dbp

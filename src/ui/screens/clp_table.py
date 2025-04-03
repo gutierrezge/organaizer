@@ -1,10 +1,20 @@
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from typing import Callable
+from kivy.uix.popup import Popup
+from kivy.uix.image import AsyncImage
 from kivy.properties import StringProperty, NumericProperty
+from kivy.uix.behaviors import ButtonBehavior
+
+class ClickableImage(ButtonBehavior, AsyncImage):
+    pass
 
 
 KV = '''
+<ClickableImage>:
+    size_hint_x: 0.20
+    size: dp(48), dp(48)
+
 <ClpRow>:
     orientation: 'horizontal'
     size_hint_y: None
@@ -48,10 +58,9 @@ KV = '''
         valign: 'middle'
         color: 0, 0, 0, 1
 
-    Image:
+    ClickableImage:
         source: root.box_p
-        size_hint_x: 0.20
-        size: dp(48), dp(48)
+        on_release: root.open_popup()
 
 
 <ClpTable>:
@@ -116,6 +125,14 @@ class ClpRow(BoxLayout):
     box_y = StringProperty()
     box_z = StringProperty()
     box_p = StringProperty()
+
+    def open_popup(self):
+        popup = Popup(
+            title=f"Box Pposition - ID: {self.box_id}",
+            content=AsyncImage(source=self.box_p),
+            size_hint=(0.5, 0.5),
+        )
+        popup.open()
 
 
 class ClpTable(BoxLayout):

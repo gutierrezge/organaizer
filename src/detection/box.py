@@ -246,8 +246,8 @@ class BoxDetection:
                                     corners=corners,
                                     dimensions=dimensions
                                 )
-                                return prediction
-                                #return self.tracker.update(prediction)
+                                #return prediction
+                                return self.tracker.update(prediction)
                             else:
                                 continue
                         else:
@@ -259,7 +259,7 @@ class BoxDetection:
             frame=frame,
             painted_frame=plot.plot_prediction(frame.copy())
         )
-        return prediction
-        # return self.tracker.update(prediction)
+        # return prediction
+        return self.tracker.update(prediction)
             
             

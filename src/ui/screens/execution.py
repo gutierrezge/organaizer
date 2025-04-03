@@ -17,7 +17,7 @@ from kivy.metrics import dp
 from kivy.graphics.texture import Texture
 from camera import DepthCamera
 from config import Config
-from clp import ClpPlanGenerator, GenAIClpGenerator
+from clp import Clp3DBinPackingGenerator
 import numpy as np
 from .box_table import BoxTable
 from .clp_table import ClpTable
@@ -157,7 +157,7 @@ class ExecutionScreen(Screen):
         Screen.__init__(self, **kwargs)
         self.config = Config()
         self.camera = DepthCamera(self.config)
-        self.clp_plan_generator = GenAIClpGenerator()
+        self.clp_plan_generator = Clp3DBinPackingGenerator()
 
         self.box_table = BoxTable(remove_row_callback=self.on_box_table_remove_row)
         self.clp_table = ClpTable()
@@ -326,9 +326,6 @@ class ExecutionScreen(Screen):
 
     def generate_plan(self):
         if len(self.execution.boxes) > 0:
-            print("    ID      , S1, S2, S3")
-            for box in self.execution.boxes:
-                print(f"{box.short_id}, {int(box.width)}, {int(box.height)}, {int(box.depth)}")
             plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
             self.clp_remarks.text = plan.remarks
             
@@ -338,23 +335,6 @@ class ExecutionScreen(Screen):
                 "box_x": f"{item.x:.02f}",
                 "box_y": f"{item.y:.02f}",
                 "box_z": f"{item.z:.02f}",
-                "box_p": f"{self.get_hint_source(item)}"
+                "box_p": f"{item.image}"
             } for i, item in enumerate(plan.plan)]
-            print("id          , X, Y, Z")
-            for box in plan.plan:
-                print(f"{box.short_id}, {int(box.x)}, {int(box.y)}, {int(box.z)}")
             self.clp_table.set_rows(clp_rows)
-
-    def get_hint_source(self, item):
-        if item.p == 1:
-            source = 'images/1x3.jpeg' 
-        elif item.p == 2:
-            source = 'images/2x3.jpeg'
-        elif item.p == 3:
-            source = 'images/3x1.jpeg'
-        elif item.p == 4:
-            source = 'images/3x2.jpeg'
-        else:
-            source = 'images/2x3.jpeg'
-
-        return source

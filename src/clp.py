@@ -58,10 +58,6 @@ class Clp3DBinPackingGenerator:
         if response.status_code == 200:
             response:PackingResponse = BinPackingResponse(**json.loads(response.content)).response
 
-            remarks = "All boxes fitted in the container."
-            if len(response.not_packed_items) > 0:
-                remarks = f"{len(response.not_packed_items)} boxes did not fit in the container."
-
             return GeneratedClpPlan(
                 plan=[
                     ClpItem(
@@ -76,5 +72,5 @@ class Clp3DBinPackingGenerator:
                 left_over_boxes=[
                     i.id for i in response.not_packed_items
                 ],
-                remarks=remarks
+                used_space=response.bins_packed[0].bin_data.used_space if len(response.bins_packed) > 0 else 0
             )

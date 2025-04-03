@@ -141,6 +141,41 @@ ExecutionScreen_KV = """
                 orientation: "vertical"
                 size_hint: 1, 1
                 height: dp(550)
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: dp(30)
+                    padding: 0
+                    spacing: 10
+
+                    MDLabel:
+                        id: used_space_label
+                        text: "Used Space: 0%"
+                        bold: True
+                        valign: "middle"
+                        halign: "left"
+                        size_hint_y: None
+                        height: dp(30)
+
+                    MDLabel:
+                        id: packed_boxes_label
+                        text: "Fitted Boxes: 0"
+                        bold: True
+                        valign: "middle"
+                        halign: "left"
+                        size_hint_y: None
+                        height: dp(30)
+
+                    MDLabel:
+                        id: not_packed_boxes_label
+                        text: "Unfitted Boxes: 0"
+                        bold: True
+                        valign: "middle"
+                        halign: "left"
+                        size_hint_y: None
+                        height: dp(30)
+
         
 """
 
@@ -150,7 +185,6 @@ class ExecutionScreen(Screen):
     container_depth = StringProperty('200.0')
     execution:Execution = ObjectProperty(Execution(id=uuid4(), container_width=200, container_height=200, container_depth=200))
     latest_prediction:Optional[Prediction] = None
-    clp_remarks:Label = None
     capturing_video:bool = False
     
     def __init__(self, **kwargs):
@@ -188,16 +222,7 @@ class ExecutionScreen(Screen):
         )
         self.ids.clp_layout.add_widget(self.clp_table)
 
-        self.clp_remarks = Label(
-            text="",
-            color=(1, 0, 0, 1),
-            bold=True,
-            valign="middle",
-            halign="left",
-            size_hint_y=None,
-            height=dp(30),
-        )
-        self.ids.clp_layout.add_widget(self.clp_remarks)
+        
 
 
     def on_container_width(self, instance:MDTextField, value:str):
@@ -327,7 +352,9 @@ class ExecutionScreen(Screen):
     def generate_plan(self):
         if len(self.execution.boxes) > 0:
             plan: GeneratedClpPlan = self.clp_plan_generator.generate(self.execution)
-            self.clp_remarks.text = plan.remarks
+            self.ids.not_packed_boxes_label.text = f"Unfitted Boxes: {len(plan.left_over_boxes)}"
+            self.ids.packed_boxes_label.text = f"Fitted Boxes: {len(plan.plan)}"
+            self.ids.used_space_label.text = f"Used Space: {int(plan.used_space)}%"
             
             clp_rows = [{
                 "index": str(int(i)),

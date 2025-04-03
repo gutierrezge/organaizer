@@ -86,7 +86,7 @@ class ClpItem(BaseModel):
 class GeneratedClpPlan(BaseModel):
     plan:List[ClpItem] = Field(default=[])
     left_over_boxes:List[UUID] = Field(default=[])
-    remarks:str = Field(default='')
+    used_space:float
 
 
 class DimSide(BaseModel):

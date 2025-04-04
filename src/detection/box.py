@@ -20,11 +20,13 @@ import pyrealsense2 as rs
 import utils
 import plot
 
+OBJECT_LOST_SECONDS = 5*1000 # 5 seconds
+
 class Tracker:
 
     def __init__(self):
-        self.tracks:List[Prediction] = []
-        self.maxlen = 101
+        self.tracked_dimensions:List[Dimensions] = []
+        self.maxlen = 100
 
     def get_stable_value(self, data:List[float], sigma:float=3):
         data_array = np.array(data)
@@ -44,15 +46,15 @@ class Tracker:
 
 
     def get_sides(self):
-        pred = self.tracks[-1]
-        if len(self.tracks) < 10:
-            return pred.dimensions.side3, pred.dimensions.side4, pred.dimensions.side5
+        dimension = self.tracked_dimensions[-1]
+        if len(self.tracked_dimensions) < 10:
+            return dimension.side3, dimension.side4, dimension.side5
         
         side3, side4, side5 = [], [], []
-        for pred in self.tracks:
-            side3.append(pred.dimensions.side3.value)
-            side4.append(pred.dimensions.side4.value)
-            side5.append(pred.dimensions.side5.value)
+        for pred in self.tracked_dimensions:
+            side3.append(dimension.side3.value)
+            side4.append(dimension.side4.value)
+            side5.append(dimension.side5.value)
 
         side3 = self.get_stable_value(side3)
         side4 = self.get_stable_value(side4)
@@ -60,46 +62,45 @@ class Tracker:
 
         side3 = DimSide(
             value=side3,
-            point1=pred.dimensions.side3.point1,
-            point2=pred.dimensions.side3.point2
+            point1=dimension.side3.point1,
+            point2=dimension.side3.point2
         )
         side4 = DimSide(
             value=side4,
-            point1=pred.dimensions.side4.point1,
-            point2=pred.dimensions.side4.point2
+            point1=dimension.side4.point1,
+            point2=dimension.side4.point2
         )
         side5 = DimSide(
             value=side5,
-            point1=pred.dimensions.side5.point1,
-            point2=pred.dimensions.side5.point2
+            point1=dimension.side5.point1,
+            point2=dimension.side5.point2
         )
         return side3, side4, side5
 
-    def update(self, prediction: Prediction):
-        if len(self.tracks) > 0 and (prediction.detection_time - self.tracks[-1].detection_time) > 1000*5:
-            self.tracks = []
+    def update(self, dimension: Optional[Dimensions]):
+        if dimension:
+            if len(self.tracked_dimensions) > 0 and (dimension.detection_time - self.tracked_dimensions[-1].detection_time) > OBJECT_LOST_SECONDS:
+                self.tracked_dimensions = []
 
-        if prediction.dimensions:
-            self.tracks.append(prediction)
-            self.tracks = self.tracks[-self.maxlen:]
-            if len(self.tracks) > 5:
-                side3, side4, side5 = self.get_sides()
-                return prediction.model_copy(update={
-                    "dimensions": Dimensions(
-                        sides=[
-                            prediction.dimensions.side1,
-                            prediction.dimensions.side2,
+            if dimension:
+                self.tracked_dimensions.append(dimension)
+                self.tracked_dimensions = self.tracked_dimensions[-self.maxlen:]
+                if len(self.tracked_dimensions) > 5:
+                    side3, side4, side5 = self.get_sides()
+                    return dimension.model_copy(update={
+                        "sides": [
+                            dimension.side1,
+                            dimension.side2,
                             side3,
                             side4,
                             side5,
-                            prediction.dimensions.side6
+                            dimension.side6
                         ]
-                    )
-                })
-            else:
-                return prediction
+                    })
+                else:
+                    return dimension
 
-        return prediction
+        return dimension
 
 class BoxDetection:
 
@@ -237,7 +238,8 @@ class BoxDetection:
                             corners:Optional[np.ndarray] = self.__detect_corners__(mask)
                             if corners is not None:
                                 dimensions:Optional[Dimensions] = self.estimator.calculate_object_dimensions(depth_frame, corners)
-                                prediction = Prediction(
+                                dimensions:Optional[Dimensions] = self.tracker.update(dimensions)
+                                return Prediction(
                                     id=uuid4(),
                                     frame=frame,
                                     painted_frame=plot.plot_prediction(frame.copy(), bbox, mask, dimensions),
@@ -246,18 +248,17 @@ class BoxDetection:
                                     corners=corners,
                                     dimensions=dimensions
                                 )
-                                return self.tracker.update(prediction)
                             else:
                                 continue
                         else:
                             continue
                     else:
                         continue
-        prediction = Prediction(
+        self.tracker.update(None)
+        return Prediction(
             id=uuid4(),
             frame=frame,
             painted_frame=plot.plot_prediction(frame.copy())
         )
-        return self.tracker.update(prediction)
             
             

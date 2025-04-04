@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 
 class DistanceConfig(BaseModel):
-    distance_factor:float = Field(default=0.75)
+    distance_factor:float = Field(default=1)
     to_centimeter:float = Field(default=1/10)
 
 
